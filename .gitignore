@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.DS_Store
+# recorded market data (large; kept out of git)
+data/

@@ -1,0 +1,58 @@
+* { box-sizing: border-box; margin: 0; }
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-body);
+  font: 400 14px/1.5 var(--font-sans);
+}
+
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.up { color: var(--color-trading-up); }
+.down { color: var(--color-trading-down); }
+
+.topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: 0 var(--space-lg);
+  border-bottom: 1px solid var(--color-hairline);
+}
+.brand { color: var(--color-primary); font-weight: 700; font-size: 20px; letter-spacing: -0.3px; }
+.filters { display: flex; gap: var(--space-xs); margin-left: auto; }
+.chip {
+  background: var(--color-surface-card);
+  color: var(--color-body);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  padding: 6px var(--space-sm);
+  font: 500 14px/1.4 var(--font-sans);
+}
+
+main { max-width: 1440px; margin: 0 auto; padding: var(--space-lg); display: grid; gap: var(--space-md); }
+
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-md); }
+.kpi { background: var(--color-surface-card); border-radius: var(--radius-lg); padding: var(--space-md) 20px; }
+.kpi-label { color: var(--color-muted); font: 500 12px/1.4 var(--font-sans); }
+.kpi-value { font: 700 28px/1.2 var(--font-num); color: var(--color-strong); margin-top: var(--space-xxs); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+.panel {
+  background: var(--color-surface-card);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  min-height: 220px;
+}
+.panel h2 { font: 600 16px/1.4 var(--font-sans); color: var(--color-strong); }
+.panel p { color: var(--color-muted); margin-top: var(--space-xxs); }
+.panel.wide { min-height: 280px; }
+
+@media (max-width: 1024px) {
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .topbar { padding: 0 var(--space-md); }
+  .filters { display: none; }
+  main { padding: var(--space-md); }
+}

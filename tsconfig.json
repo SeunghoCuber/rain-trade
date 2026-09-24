@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": ["packages/*/src", "apps/harness-live/src", "apps/harness-replay/src", "vitest.config.ts"]
+}

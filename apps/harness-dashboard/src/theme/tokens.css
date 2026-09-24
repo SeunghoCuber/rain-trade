@@ -1,0 +1,62 @@
+/*
+ * Design tokens from docs/DESIGN.md. Dark is the default (trading dashboard);
+ * [data-theme="light"] flips canvas/surface/text only. Accent and trading colors are shared.
+ * Fonts: Inter substitutes the display/body face, JetBrains Mono the numeric face.
+ */
+:root {
+  /* brand */
+  --color-primary: #fcd535;
+  --color-primary-active: #f0b90b;
+  --color-primary-disabled: #3a3a1f;
+  --color-on-primary: #181a20;
+
+  /* trading semantics: text color only, never surfaces */
+  --color-trading-up: #0ecb81;
+  --color-trading-down: #f6465d;
+  --color-info: #3b82f6;
+
+  /* surfaces (dark) */
+  --color-canvas: #0b0e11;
+  --color-surface-card: #1e2329;
+  --color-surface-elevated: #2b3139;
+  --color-hairline: #2b3139;
+
+  /* text (dark) */
+  --color-body: #eaecef;
+  --color-strong: #ffffff;
+  --color-muted: #707a8a;
+  --color-muted-strong: #929aa5;
+
+  /* type */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* spacing (4px scale) */
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+  --space-section: 80px;
+
+  /* radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-pill: 9999px;
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --color-canvas: #ffffff;
+  --color-surface-card: #ffffff;
+  --color-surface-elevated: #f5f5f5;
+  --color-hairline: #eaecef;
+  --color-body: #181a20;
+  --color-strong: #181a20;
+  color-scheme: light;
+}

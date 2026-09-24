@@ -1,0 +1,59 @@
+# RainTrade default config. Venue/settlement values are verified in docs/VERIFIED.md.
+# Prices are in dollars (0..1); 1 cent = 0.01.
+
+market:
+  coin: btc
+  durationSec: 900
+  slugPrefix: btc-updown-15m
+
+venue:
+  gammaUrl: https://gamma-api.polymarket.com
+  clobUrl: https://clob.polymarket.com
+  clobWsUrl: wss://ws-subscriptions-clob.polymarket.com/ws/market
+  rtdsWsUrl: wss://ws-live-data.polymarket.com
+  tickSize: 0.01
+  minOrderSize: 5
+  feeSchedule:          # Gamma market.feeSchedule (feeType crypto_fees_v2)
+    rate: 0.07
+    exponent: 1
+    takerOnly: true
+    rebateRate: 0.2
+  complementaryMatching: true
+
+spot:
+  binanceWsUrl: wss://data-stream.binance.vision/stream
+  coinbaseWsUrl: wss://ws-feed.exchange.coinbase.com
+  symbol: { binance: btcusdt, coinbase: BTC-USD }
+
+settlement:
+  tieGoesTo: up         # "greater than or equal to the price at the beginning"
+  twapWindow: { fromSec: -62, toSec: -3 }   # mean of 1 s Chainlink ticks; docs/VERIFIED.md §2.1
+  mergePairs: true
+
+recorder:
+  dataDir: data
+  discoveryPollSec: 30
+  preRegisterSec: 60
+  maxGapMs: 2000
+  spotSources: [binance, coinbase]
+
+fairValue:
+  volHalfLivesSec: [60, 600]
+  spotInput: spot_mid
+
+strategy:
+  halfSpread: 0.01
+  volSpreadMult: 0.5
+  skewPerShare: 0.0001
+  maxInventory: 500
+  quoteSize: 50
+  requoteThreshold: 0.003
+  pullBeforeCloseSec: 60
+  pullOnSpotJump: { bp: 8, windowMs: 500 }
+
+sim:
+  seed: 42
+  modes:
+    optimistic:  { ackLatencyMs: 50,  cancelLatencyMs: 50,  queuePadFrac: 0,   cancelsAheadFrac: prorata }
+    base:        { ackLatencyMs: 150, cancelLatencyMs: 150, queuePadFrac: 0,   cancelsAheadFrac: 0.5 }
+    pessimistic: { ackLatencyMs: 400, cancelLatencyMs: 400, queuePadFrac: 0.1, cancelsAheadFrac: 0 }

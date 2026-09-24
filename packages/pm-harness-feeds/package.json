@@ -1,0 +1,12 @@
+{
+  "name": "@rain/pm-harness-feeds",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@rain/pm-harness-core": "workspace:*"
+  }
+}
