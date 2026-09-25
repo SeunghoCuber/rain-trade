@@ -14,9 +14,11 @@ export interface FeedState {
   lastDetail: string;
   /** currently alerting as down */
   down: boolean;
+  /** when this feed was registered: its silence clock starts here, not at process start */
+  createdMs: number;
 }
 
-const newFeed = (): FeedState => ({
+const newFeed = (createdMs: number): FeedState => ({
   connected: false,
   lastEventMs: null,
   events: 0,
@@ -29,6 +31,7 @@ const newFeed = (): FeedState => ({
   unknownTypes: {},
   lastDetail: "",
   down: false,
+  createdMs,
 });
 
 export type Alert = (text: string) => void;
@@ -52,7 +55,7 @@ export class Health {
 
   feed(name: string): FeedState {
     let f = this.feeds.get(name);
-    if (!f) this.feeds.set(name, (f = newFeed()));
+    if (!f) this.feeds.set(name, (f = newFeed(this.now())));
     return f;
   }
 
@@ -88,7 +91,7 @@ export class Health {
   check(): void {
     const now = this.now();
     for (const [name, f] of this.feeds) {
-      const since = now - (f.lastEventMs ?? this.startedMs);
+      const since = now - (f.lastEventMs ?? f.createdMs);
       if (!f.down && since > this.downAfterMs(name)) {
         f.down = true;
         this.alert(`🚨 ${name} silent for ${Math.round(since / 1000)}s (${f.connected ? "connected" : f.lastDetail || "disconnected"})`);

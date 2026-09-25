@@ -8,12 +8,14 @@
 // Kill switch: data/live/KILL (manual), drawdown, rolling 7-day edge (config live.killSwitch).
 
 import { spawn } from "node:child_process";
+import { monitorEventLoopDelay } from "node:perf_hooks";
+import { Worker } from "node:worker_threads";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DuckDBInstance } from "@duckdb/node-api";
-import { AsyncEventQueue, LiveClock, loadConfig, makeRecvClock, type MarketEvent } from "@rain/pm-harness-core";
-import { LiveFeeds, type FeedHooks } from "@rain/pm-harness-feeds";
+import { AsyncEventQueue, LiveClock, loadConfig, makeClockAnchor, makeRecvClock, type MarketEvent } from "@rain/pm-harness-core";
 import { BacktestRunner, MarketMaker, type FillRow, type MarketResultRow } from "@rain/pm-harness-strategy";
+import type { FeedWorkerInput, FeedWorkerMessage } from "./feed-worker.ts";
 import { GatedStrategy, KillSwitch, type SettledMarket } from "./kill-switch.ts";
 
 const cfg = loadConfig(process.argv[2] ?? "config/default.yaml");
@@ -37,33 +39,27 @@ if (existsSync(marketsFile)) {
 }
 const kill = new KillSwitch(cfg, killFile, history);
 
-const recvTs = makeRecvClock();
+// one clock anchor for both threads: event recvTs (network thread) and the engine clock compare exactly
+const anchor = makeClockAnchor();
+const recvTs = makeRecvClock(anchor);
 const clock = new LiveClock(recvTs);
 const startedMs = Date.now();
 const runner = new BacktestRunner({ cfg, clock, modes: cfg.live.modes, strategy: () => new GatedStrategy(new MarketMaker(cfg), kill) });
 const queue = new AsyncEventQueue<MarketEvent>();
-const feedState = new Map<string, { connected: boolean; lastEventMs: number | null; events: number }>();
-const feedRow = (n: string) => feedState.get(n) ?? feedState.set(n, { connected: false, lastEventMs: null, events: 0 }).get(n)!;
 
-const hooks: FeedHooks = {
-  emit: (ev) => queue.push(ev),
-  recvTs,
-  now: () => Date.now(),
-  onState: (feed, connected, detail) => {
-    feedRow(feed).connected = connected;
-    log(connected ? "info" : "warn", `${feed} ${connected ? "connected" : `disconnected (${detail})`}`);
-  },
-  onGap: (feed, gapMs, reason) => gapMs > cfg.recorder.maxGapMs && log("warn", `${feed} gap ${gapMs}ms (${reason})`),
-  onEvents: (feed, n) => {
-    const f = feedRow(feed);
-    f.events += n;
-    f.lastEventMs = Date.now();
-  },
-  onParseError: (feed, err) => log("error", `${feed} parse error: ${err.message}`),
-  onUnknownType: () => {},
-  onMirrorMismatch: () => {},
-};
-const feeds = new LiveFeeds({ cfg, hooks, log, onMarketRetire: (m) => feedState.delete(`clob:${m.slug}`) });
+// all sockets live in a worker thread (feed-worker.ts): the engine can never make the venue see a slow consumer
+let netStatus: Extract<FeedWorkerMessage, { type: "status" }> | null = null;
+const worker = new Worker(new URL("./feed-worker.ts", import.meta.url), { workerData: { cfg, anchor } satisfies FeedWorkerInput });
+worker.on("message", (m: FeedWorkerMessage) => {
+  if (m.type === "events") for (const ev of m.events) queue.push(ev);
+  else netStatus = m;
+});
+worker.on("error", (e: Error) => {
+  log("error", `feed worker crashed: ${e.stack ?? e.message}`);
+  void shutdown("feed worker error", 1);
+});
+const loopDelay = monitorEventLoopDelay({ resolution: 10 });
+loopDelay.enable();
 
 // persistence (snake_case columns = the backtest run layout, so analytics + dashboard read both)
 const append = (file: string, rows: object[]) => rows.length && appendFileSync(join(outDir, file), rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
@@ -123,7 +119,7 @@ async function exportRun(): Promise<void> {
 
 function writeStatus(lagMs: number): void {
   const now = Date.now();
-  const markets = feeds.activeMarkets.map((m) => ({
+  const markets = (netStatus?.markets ?? []).map((m) => ({
     slug: m.slug,
     inWindow: now >= m.windowStart && now < m.windowEnd,
     secondsLeft: Math.round((m.windowEnd - now) / 1000),
@@ -137,8 +133,10 @@ function writeStatus(lagMs: number): void {
     killSwitch: { halted: kill.halted, ...kill.stats(now) },
     processingLagMs: Math.round(lagMs),
     queued: queue.size,
-    rttMs: feeds.rtt(),
-    feeds: Object.fromEntries(feedState),
+    // main-thread event loop delay since the last status: a stall here no longer affects the sockets
+    eventLoopDelayMs: { p50: Math.round(loopDelay.percentile(50) / 1e6), p99: Math.round(loopDelay.percentile(99) / 1e6), max: Math.round(loopDelay.max / 1e6) },
+    rttMs: netStatus?.rtt ?? {},
+    feeds: netStatus?.feeds ?? {},
     markets,
     settledThisRun: new Set(runner.results.map((r) => r.marketId)).size,
     simStats: Object.fromEntries(runner.modes.map((m) => [m.mode, m.sim.stats])),
@@ -153,12 +151,12 @@ if (cfg.recorder.preventSleep && process.platform === "darwin") {
   c.on("error", () => {});
   c.unref();
 }
-feeds.start();
 let lastLag = 0;
 const timers = [
   setInterval(() => {
     kill.evaluate(Date.now());
     writeStatus(lastLag);
+    loopDelay.reset();
   }, cfg.live.statusIntervalSec * 1000),
   setInterval(() => void exportRun().catch((e: Error) => log("error", `export: ${e.message}`)), 10 * 60_000),
 ];
@@ -170,7 +168,8 @@ async function shutdown(signal: string, code = 0): Promise<void> {
   stopping = true;
   log("info", `${signal}: shutting down (open markets are not settled; their positions are dropped)`);
   for (const t of timers) clearInterval(t);
-  feeds.stop();
+  worker.postMessage({ type: "stop" });
+  await new Promise((r) => setTimeout(r, 300)); // let the worker flush its last batch
   queue.close();
   persistSettled();
   await exportRun().catch(() => {});
