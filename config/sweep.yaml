@@ -1,0 +1,14 @@
+# Parameter grid for `pnpm sweep` (Phase 10). Every combination is run on the same event stream;
+# the config is chosen on the in-sample share only (report.inSampleFrac). Values override
+# config/default.yaml by dotted path.
+base: config/default.yaml
+params:
+  strategy.halfSpread: [0.005, 0.01, 0.015, 0.02]
+  strategy.skewPerShare: [0, 0.00005, 0.0001, 0.0002]
+  strategy.quoteSize: [10, 50]
+# V10 heatmap axes and the plateau check (neighbours along these axes, other params fixed)
+plateauAxes: [strategy.halfSpread, strategy.skewPerShare]
+# fill mode used to rank configs (PLAN.md: decide on pessimistic fills)
+mode: pessimistic
+# ignore configs with less in-sample volume than this (shares): tiny samples rank by luck
+minInSampleVolume: 500

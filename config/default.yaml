@@ -71,3 +71,22 @@ sim:
     optimistic:  { ackLatencyMs: 50,  cancelLatencyMs: 50,  queuePadFrac: 0,   cancelsAheadFrac: prorata }
     base:        { ackLatencyMs: 150, cancelLatencyMs: 150, queuePadFrac: 0,   cancelsAheadFrac: 0.5 }
     pessimistic: { ackLatencyMs: 400, cancelLatencyMs: 400, queuePadFrac: 0.1, cancelsAheadFrac: 0 }
+
+report:
+  minMarkets: 2000
+  minDays: 21
+  minTStat: 2.5
+  bankrollUsd: 5000
+  maxDrawdownFrac: 0.2
+  plateauFrac: 0.3
+  brierTolerance: 0.01
+  inSampleFrac: 0.7
+
+live:
+  outDir: data/live
+  modes: [optimistic, base, pessimistic]
+  statusIntervalSec: 10
+  killSwitch:
+    maxDrawdownUsd: 1000
+    minRolling7dEdgeCents: -0.5
+    minMarkets: 200

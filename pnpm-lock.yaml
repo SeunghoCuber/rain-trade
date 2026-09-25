@@ -227,9 +227,21 @@ importers:
 
   apps/harness-live:
     dependencies:
+      '@duckdb/node-api':
+        specifier: 1.5.5-r.5
+        version: 1.5.5-r.5
       '@rain/pm-harness-core':
         specifier: workspace:*
         version: link:../../packages/pm-harness-core
+      '@rain/pm-harness-feeds':
+        specifier: workspace:*
+        version: link:../../packages/pm-harness-feeds
+      '@rain/pm-harness-store':
+        specifier: workspace:*
+        version: link:../../packages/pm-harness-store
+      '@rain/pm-harness-strategy':
+        specifier: workspace:*
+        version: link:../../packages/pm-harness-strategy
 
   apps/harness-recorder:
     dependencies:
@@ -260,6 +272,9 @@ importers:
       '@rain/pm-harness-strategy':
         specifier: workspace:*
         version: link:../../packages/pm-harness-strategy
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
 
   packages/pm-harness-analytics:
     dependencies:

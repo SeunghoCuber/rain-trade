@@ -85,6 +85,33 @@ export interface Calibration {
   note?: string;
 }
 
+export interface SweepMetrics {
+  markets: number;
+  volume: number;
+  edgeCents: number | null;
+  edgeCentsExRebates: number | null;
+  meanPnl: number | null;
+  tStat: number | null;
+}
+
+export interface Sweep {
+  id: string;
+  sweep: {
+    sweepId: string;
+    createdAt: string;
+    mode: Mode;
+    params: [string, (number | string | boolean)[]][];
+    plateauAxes: string[];
+    split: { by: string; boundaryMs: number; inSampleMarkets: number; outOfSampleMarkets: number };
+    configsTried: number;
+    configs: { id: string; overrides: Record<string, number | string | boolean>; is: SweepMetrics; oos: SweepMetrics }[];
+    chosenId: string;
+    plateau: { pass: boolean };
+    oosRunId: string | null;
+  };
+  report: { verdict: "GO" | "NO-GO"; criteria: { name: string; threshold: string; value: string; pass: boolean }[] } | null;
+}
+
 async function get<T>(path: string): Promise<T> {
   const r = await fetch(path);
   if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
@@ -97,4 +124,5 @@ export const api = {
   markets: (run: string, mode: Mode) => get<MarketRow[]>(`/api/runs/${encodeURIComponent(run)}/markets?mode=${mode}`),
   market: (run: string, id: string, mode: Mode) => get<MarketDetail>(`/api/runs/${encodeURIComponent(run)}/markets/${encodeURIComponent(id)}?mode=${mode}`),
   calibration: () => get<Calibration>("/api/calibration"),
+  latestSweep: () => get<Sweep | null>("/api/sweeps/latest"),
 };

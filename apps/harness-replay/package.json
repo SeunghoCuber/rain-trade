@@ -11,6 +11,7 @@
     "@rain/pm-harness-analytics": "workspace:*",
     "@rain/pm-harness-core": "workspace:*",
     "@rain/pm-harness-store": "workspace:*",
-    "@rain/pm-harness-strategy": "workspace:*"
+    "@rain/pm-harness-strategy": "workspace:*",
+    "yaml": "^2.9.1"
   }
 }

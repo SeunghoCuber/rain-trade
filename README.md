@@ -96,6 +96,13 @@ pnpm sanity                                     # PLAN §9 invariants on closed 
 
 Outputs go to `data/runs/<runId>/`: `fills.parquet`, `markets.parquet` (per market × mode: PnL decomposition, rebate, uptime), `fv.parquet` (FV every 250 ms), `quotes.parquet` and `run.json` (config + results digest).
 
+## Sweeps and the go/no-go report (Phase 10)
+
+```sh
+pnpm sweep --id sweep-w1                        # grid in config/sweep.yaml; picks on in-sample, re-runs the pick out-of-sample
+pnpm report sweep-w1                            # PLAN §10 criteria on out-of-sample pessimistic results → report.md (exit 2 = NO-GO)
+```
+
 ## Dashboard (Phase 9)
 
 ```sh

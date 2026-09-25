@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, MODES, type Calibration, type MarketDetail, type MarketRow, type Mode, type RunAnalysis, type RunInfo } from "./api.ts";
+import { api, MODES, type Calibration, type MarketDetail, type MarketRow, type Mode, type RunAnalysis, type RunInfo, type Sweep } from "./api.ts";
 import {
   BootstrapDist,
   CumulativePnl,
@@ -9,10 +9,11 @@ import {
   MarketDrilldown,
   MarkoutCurve,
   ModeComparison,
+  GoNoGo,
   PnlHistogram,
   Reliability,
   SpotVsMarkout,
-  SweepPlaceholder,
+  SweepHeatmap,
 } from "./components/Charts.tsx";
 import { MarketTable } from "./components/MarketTable.tsx";
 import { fmt } from "./theme/chart.ts";
@@ -42,6 +43,7 @@ export function App() {
   const [selected, setSelected] = useState<string | null>(params.get("market"));
   const [detail, setDetail] = useState<MarketDetail | null>(null);
   const [cal, setCal] = useState<Calibration | null>(null);
+  const [sweep, setSweep] = useState<Sweep | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,6 +52,7 @@ export function App() {
       if (r[0]) setRun(r[0].runId);
     }, (e: Error) => setError(e.message));
     api.calibration().then(setCal, () => setCal(null));
+    api.latestSweep().then(setSweep, () => setSweep(null));
   }, []);
   useEffect(() => {
     if (!run) return;
@@ -127,8 +130,9 @@ export function App() {
             </div>
             <div className="grid-2">
               <HeatVolHour a={a} mode={mode} />
-              <SweepPlaceholder />
+              <SweepHeatmap s={sweep} />
             </div>
+            <GoNoGo s={sweep} />
             <MarketTable rows={markets} selected={selected} onSelect={setSelected} />
             <MarketDrilldown d={detail} mode={mode} />
           </>

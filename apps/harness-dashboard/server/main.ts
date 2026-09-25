@@ -83,6 +83,20 @@ async function handle(url: URL, res: ServerResponse): Promise<void> {
       return json(res, 200, { meta, fv, quotes, fills });
     }
   }
+  if (parts[0] === "sweeps") {
+    const root = join(dataDir, "sweeps");
+    const ids = existsSync(root) ? readdirSync(root).filter((d) => existsSync(join(root, d, "sweep.json"))) : [];
+    const read = (id: string) => ({
+      sweep: JSON.parse(readFileSync(join(root, id, "sweep.json"), "utf8")) as { createdAt: string },
+      report: existsSync(join(root, id, "report.json")) ? JSON.parse(readFileSync(join(root, id, "report.json"), "utf8")) : null,
+    });
+    if (parts[1] === "latest") {
+      const latest = ids.map((id) => ({ id, ...read(id) })).sort((a, b) => b.sweep.createdAt.localeCompare(a.sweep.createdAt))[0];
+      return json(res, 200, latest ?? null);
+    }
+    if (parts[1] && safeId(parts[1]) && ids.includes(parts[1])) return json(res, 200, { id: parts[1], ...read(parts[1]) });
+    return json(res, 200, ids);
+  }
   if (parts[0] === "calibration") {
     const f = join(dataDir, "analysis", "fv_samples.parquet");
     if (!existsSync(f)) return json(res, 200, { bins: [], markets: 0, note: "run pnpm fv:calibrate" });

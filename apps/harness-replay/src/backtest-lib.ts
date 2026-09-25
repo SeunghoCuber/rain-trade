@@ -15,6 +15,9 @@ export interface BacktestOptions {
   quoteFv?: RunnerOptions["quoteFv"];
   /** write Parquet outputs to data/runs/<runId>/ */
   write?: boolean;
+  /** keep only these markets in the outputs (e.g. out-of-sample windows after a warm-up period) */
+  keepMarket?: (windowStart: number) => boolean;
+  modes?: RunnerOptions["modes"];
 }
 
 export interface BacktestOutput {
@@ -28,9 +31,17 @@ export interface BacktestOutput {
 export async function backtest(o: BacktestOptions): Promise<BacktestOutput> {
   const t0 = Date.now();
   const clock = new ReplayClock();
-  const runner = new BacktestRunner({ cfg: o.cfg, clock, strategy: o.strategy, ...(o.quoteFv ? { quoteFv: o.quoteFv } : {}) });
+  const runner = new BacktestRunner({ cfg: o.cfg, clock, strategy: o.strategy, ...(o.quoteFv ? { quoteFv: o.quoteFv } : {}), ...(o.modes ? { modes: o.modes } : {}) });
   await runReplay(replay(o.conn, o.cfg.recorder.dataDir, { rawOnly: true, ...o.replay }), clock, (ev) => runner.handle(ev));
 
+  if (o.keepMarket) {
+    const keep = new Set<string>();
+    for (const [id, s] of runner.states.markets) if (s.meta && o.keepMarket(s.meta.windowStart)) keep.add(id);
+    runner.results.splice(0, runner.results.length, ...runner.results.filter((r) => keep.has(r.marketId)));
+    for (const m of runner.modes) for (const id of [...m.fills.keys()]) if (!keep.has(id)) m.fills.delete(id);
+    for (const id of [...runner.fvSeries.keys()]) if (!keep.has(id)) runner.fvSeries.delete(id);
+    runner.quotes.splice(0, runner.quotes.length, ...runner.quotes.filter((q) => keep.has(q.marketId)));
+  }
   const fills = runner.allFills();
   const fv = runner.allFv();
   // results digest: identical inputs + config + code ⇒ identical bytes (sanity check 7)

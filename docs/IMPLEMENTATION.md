@@ -233,6 +233,16 @@ The zero-strategy and determinism tests should be written during Phases 3 to 6, 
 
 ## Phase 10: Sweeps, out-of-sample testing and the go/no-go report (~4 days)
 
+> **Status: done (2026-09-25).** Code: `apps/harness-replay/src/sweep/`: `pnpm sweep [--grid config/sweep.yaml]`, then `pnpm report <sweepId>`. On the dashboard: V10 and the Go/No-Go panel.
+> - **How it works:**
+>   - Grid configs run on worker threads. Each worker makes one replay pass for its whole share of configs, over closed hours only.
+>   - The split is 70/30 in time: by UTC day with ≥ 5 days, by market before that. Configs are ranked on **in-sample** pessimistic edge excluding rebates, with a minimum-volume filter.
+>   - The plateau check needs grid neighbours within 30% of the chosen config's in-sample edge.
+>   - The chosen config is re-run **out-of-sample** in all fill modes, with a 60 min warm-up, as run `<id>-oos`.
+>   - The report evaluates every §10 criterion on that run and states how many configs were tried.
+> - **First sweep** (32 configs, 26.6M events, 15 min on 9 workers): the in-sample winner, halfSpread 2¢ / skew 0 / 50 shares, made +1.53¢ in-sample and −0.66¢ out-of-sample. Nearly every in-sample leader is negative out-of-sample. The report is **NO-GO**: sample size, both edge criteria, regime, plateau and calibration fail; only drawdown passes.
+> - **Mechanically this is expected with 57 usable markets.** It shows the out-of-sample rule doing its job rather than a verdict on the strategy. Re-run the sweep weekly as data accumulates.
+
 - A sweep runner that runs N configs in parallel (worker threads) over the same event stream.
 - A 70/30 split by day: parameters are chosen on the first 70%, and only the out-of-sample results are reported, together with how many configs were tried.
 - The V10 heatmap, with a plateau check.

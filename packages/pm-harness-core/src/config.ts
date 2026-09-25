@@ -104,6 +104,35 @@ export const Config = z.object({
     seed: z.number().int(),
     modes: z.object({ optimistic: FillModeParams, base: FillModeParams, pessimistic: FillModeParams }),
   }),
+  /** go/no-go thresholds (PLAN.md §10), evaluated on out-of-sample pessimistic results */
+  report: z.object({
+    minMarkets: z.number().int().positive(),
+    minDays: z.number().positive(),
+    minTStat: z.number(),
+    /** planned bankroll; max drawdown must stay below maxDrawdownFrac of it */
+    bankrollUsd: z.number().positive(),
+    maxDrawdownFrac: z.number().positive(),
+    /** chosen config's grid neighbours must be within this fraction of its in-sample edge */
+    plateauFrac: z.number().positive(),
+    /** FV Brier may be at most this fraction worse than the Polymarket mid's */
+    brierTolerance: z.number().nonnegative(),
+    /** in-sample share of the data (by day; by market while there are fewer than 5 days) */
+    inSampleFrac: z.number().min(0.1).max(0.9),
+  }),
+  /** live paper trading (Phase 11) */
+  live: z.object({
+    outDir: z.string(),
+    /** fill modes to run live */
+    modes: z.array(z.enum(["optimistic", "base", "pessimistic"])).min(1),
+    statusIntervalSec: z.number().positive(),
+    killSwitch: z.object({
+      /** stop quoting when cumulative pessimistic PnL falls this far below its peak */
+      maxDrawdownUsd: z.number().positive(),
+      /** stop quoting when the rolling 7-day pessimistic edge (¢/share) drops below this, once minMarkets are in */
+      minRolling7dEdgeCents: z.number(),
+      minMarkets: z.number().int().positive(),
+    }),
+  }),
 });
 export type Config = z.infer<typeof Config>;
 

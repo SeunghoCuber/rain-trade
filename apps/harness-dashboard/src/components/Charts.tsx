@@ -16,7 +16,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { MODES, type Calibration, type MarketDetail, type Mode, type ModeAnalysis, type RunAnalysis } from "../api.ts";
+import { MODES, type Calibration, type MarketDetail, type Mode, type ModeAnalysis, type RunAnalysis, type Sweep } from "../api.ts";
 import { axisProps, C, diverging, fmt, gridProps, MODE_COLOR, tooltipProps } from "../theme/chart.ts";
 import { Empty, Panel } from "./Panel.tsx";
 
@@ -356,12 +356,109 @@ export function SpotVsMarkout({ a, mode }: { a: RunAnalysis; mode: Mode }) {
   );
 }
 
-/** V10: parameter sweep heatmap — produced by the Phase 10 sweep runner. */
-export function SweepPlaceholder() {
+/** V10: halfSpread × skewPerShare → OUT-OF-SAMPLE edge (other params at the chosen config), t-stat in each cell. */
+export function SweepHeatmap({ s }: { s: Sweep | null }) {
+  if (!s) {
+    return (
+      <Panel id="V10" title="Parameter sweep" question="Which parameters are robust (plateau) vs overfit (spike)?">
+        <Empty>No sweep yet: run `pnpm sweep` then `pnpm report &lt;id&gt;`.</Empty>
+      </Panel>
+    );
+  }
+  const sw = s.sweep;
+  const [ax, ay] = sw.plateauAxes as [string, string];
+  const xs = sw.params.find(([p]) => p === ax)![1];
+  const ys = sw.params.find(([p]) => p === ay)![1];
+  const chosen = sw.configs.find((c) => c.id === sw.chosenId)!;
+  const slice = sw.configs.filter((c) => sw.params.every(([p]) => p === ax || p === ay || c.overrides[p] === chosen.overrides[p]));
+  const cellOf = (x: unknown, y: unknown) => slice.find((c) => c.overrides[ax] === x && c.overrides[ay] === y);
+  const vals = slice.map((c) => c.oos.edgeCentsExRebates).filter((v): v is number => v !== null);
+  const max = Math.max(1e-9, ...vals.map(Math.abs));
+  const short = (p: string) => p.split(".").at(-1)!;
+  const fixed = sw.params.filter(([p]) => p !== ax && p !== ay).map(([p]) => `${short(p)} = ${chosen.overrides[p]}`).join(", ");
   return (
-    <Panel id="V10" title="Parameter sweep" question="Which parameters are robust (plateau) vs overfit (spike)?">
-      <Empty>Appears after the Phase 10 sweep runner writes out-of-sample results.</Empty>
+    <Panel
+      id="V10"
+      title="Parameter sweep (out-of-sample)"
+      question={`${sw.configsTried} configs tried · chosen on in-sample only (outlined) · plateau ${sw.plateau.pass ? "PASS" : "FAIL"}${fixed ? ` · ${fixed}` : ""}`}
+      table={{ columns: [short(ax), short(ay), "IS edge ¢/sh", "OOS edge ¢/sh", "OOS t"], rows: slice.map((c) => [String(c.overrides[ax]), String(c.overrides[ay]), fmt.num(c.is.edgeCentsExRebates, 3), fmt.num(c.oos.edgeCentsExRebates, 3), fmt.num(c.oos.tStat, 2)]) }}
+    >
+      <div className="sweep-grid" style={{ gridTemplateColumns: `90px repeat(${xs.length}, minmax(56px, 1fr))` }}>
+        <div className="heat-corner">{short(ay)} ↓ / {short(ax)} →</div>
+        {xs.map((x) => (
+          <div key={String(x)} className="heat-col num">{String(x)}</div>
+        ))}
+        {ys.map((y) => [
+          <div key={`${String(y)}-l`} className="heat-row num">{String(y)}</div>,
+          ...xs.map((x) => {
+            const c = cellOf(x, y);
+            const v = c?.oos.edgeCentsExRebates ?? null;
+            return (
+              <div
+                key={`${String(x)}-${String(y)}`}
+                className={`sweep-cell${c?.id === sw.chosenId ? " chosen" : ""}`}
+                style={{ background: diverging(v, max) }}
+                title={c ? `${c.id}: OOS ${fmt.cents(v, 3)} (t ${fmt.num(c.oos.tStat, 2)}), IS ${fmt.cents(c.is.edgeCentsExRebates, 3)}` : "not run"}
+              >
+                <span className="num">{fmt.num(v, 2)}</span>
+                <span className="num t">t {fmt.num(c?.oos.tStat, 1)}</span>
+              </div>
+            );
+          }),
+        ])}
+      </div>
+      <div className="heat-foot">
+        <span>¢/share excl. rebates, {sw.mode} fills</span>
+        <span className="heat-scale">
+          <span className="num">{fmt.num(-max, 1)}</span>
+          <span className="heat-ramp" style={{ background: `linear-gradient(90deg, ${C.divNeg}, ${C.divMid}, ${C.divPos})` }} />
+          <span className="num">{fmt.num(max, 1)}</span>
+        </span>
+      </div>
     </Panel>
+  );
+}
+
+/** Go / No-Go (PLAN.md §10) from the latest sweep's report. */
+export function GoNoGo({ s }: { s: Sweep | null }) {
+  const r = s?.report;
+  return (
+    <section className="panel wide gonogo" aria-labelledby="gng-t">
+      <header className="panel-head">
+        <div>
+          <h2 id="gng-t">
+            Go / No-Go {r && <span className={`verdict ${r.verdict === "GO" ? "go" : "nogo"}`}>{r.verdict === "GO" ? "✓ GO" : "✕ NO-GO"}</span>}
+          </h2>
+          <p>{s ? `Sweep ${s.id} · out-of-sample run ${s.sweep.oosRunId ?? "—"} · pessimistic fills · every criterion must hold` : "No sweep yet."}</p>
+        </div>
+      </header>
+      {r ? (
+        <div className="table-scroll tall">
+          <table>
+            <thead>
+              <tr>
+                <th>Criterion</th>
+                <th>Threshold</th>
+                <th>Value</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {r.criteria.map((c) => (
+                <tr key={c.name}>
+                  <td>{c.name}</td>
+                  <td className="muted-cell">{c.threshold}</td>
+                  <td className="num wrap">{c.value}</td>
+                  <td className={c.pass ? "pass" : "fail"}>{c.pass ? "✓ PASS" : "✕ FAIL"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <Empty>{s ? `Run pnpm report ${s.id}` : "Run pnpm sweep, then pnpm report <id>."}</Empty>
+      )}
+    </section>
   );
 }
 
