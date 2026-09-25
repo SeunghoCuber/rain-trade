@@ -18,7 +18,8 @@
     "data:sql": "node packages/pm-harness-store/src/cli.ts sql",
     "replay": "node apps/harness-replay/src/main.ts",
     "fv:calibrate": "node apps/harness-replay/src/calibrate.ts",
-    "backtest": "node apps/harness-replay/src/backtest.ts"
+    "backtest": "node apps/harness-replay/src/backtest.ts",
+    "sanity": "node apps/harness-replay/src/sanity.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

@@ -150,6 +150,22 @@ This is the most important phase: paper-trading results are only as good as the 
 
 ## Phase 7: Sanity-check suite (~3 days)
 
+> **Status: done (2026-09-25).** Run with `pnpm sanity`, which exits 1 on any failure. CI versions on synthetic markets (with informed takers) are in `pm-harness-strategy/src/sanity.test.ts`. On all recorded data (11.5M events):
+>
+> | # | Check | Result |
+> |---|---|---|
+> | 1 | decomposition identity | PASS, error 5e-13 |
+> | 2 | zero strategy | PASS, exactly 0 |
+> | 3 | random quotes | PASS: spread+adverse −0.90¢/share (base), −1.63¢ (pessimistic) |
+> | 4 | perfect foresight | PASS: adverse +1.79¢/share vs mm −0.46¢ |
+> | 5 | settlement vs official | PASS, 32/32 |
+> | 6 | size impact | **FLAG**: only 44% of quote levels have quoteSize < 20% of displayed size |
+> | 7 | determinism | PASS, identical digests |
+>
+> - **Check 6 means** a 50-share quote is often a large part of its level, so "our size doesn't move the market" is shaky at this size. Sweep `quoteSize` downward, or keep it as a stated caveat in the go/no-go report.
+> - **Still open:** the exit check asks for one week of data, and we have about 12 h so far. Re-run `pnpm sanity` once more is recorded.
+> - **Pinned data range:** `pnpm sanity` defaults to closed hours only (`--to` = the start of the current hour), because the live recorder appends to the current hour while the suite runs.
+
 The checks from §9, run in CI and failing the run on any violation:
 
 1. The decomposition identity.

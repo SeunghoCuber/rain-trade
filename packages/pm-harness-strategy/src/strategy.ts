@@ -1,4 +1,4 @@
-import type { Config, Quote as BookQuote } from "@rain/pm-harness-core";
+import { Rng, type Config, type Quote as BookQuote } from "@rain/pm-harness-core";
 import type { FairValue } from "./fair-value.ts";
 
 export interface QuoteContext {
@@ -74,5 +74,32 @@ export class NoQuote implements Strategy {
   readonly name = "none";
   quote(): DesiredQuotes | null {
     return null;
+  }
+}
+
+/**
+ * Quotes at random distances (1–4 ticks) around the book mid, ignoring FV (sanity check 3). Targets
+ * are re-drawn every `holdMs` from a seed derived from (market, time bucket), so results do not
+ * depend on how often quote() is called.
+ */
+export class RandomQuote implements Strategy {
+  readonly name = "random";
+  private readonly size: number;
+  private readonly seed: string;
+  private readonly holdMs: number;
+
+  constructor(cfg: Config, seed: string, holdMs = 5_000) {
+    this.size = cfg.strategy.quoteSize;
+    this.seed = seed;
+    this.holdMs = holdMs;
+  }
+
+  quote(ctx: QuoteContext): DesiredQuotes | null {
+    if (ctx.nowMs < ctx.windowStart || ctx.nowMs > ctx.windowEnd - 60_000) return null;
+    if (ctx.book.bid === null || ctx.book.ask === null) return null;
+    const rng = new Rng(`${this.seed}|${ctx.marketId}|${Math.floor(ctx.nowMs / this.holdMs)}`);
+    const mid = (ctx.book.bid + ctx.book.ask) / 2;
+    const t = ctx.tickSize;
+    return { ...sanitize(mid - rng.int(1, 5) * t, mid + rng.int(1, 5) * t, ctx), size: this.size };
   }
 }
