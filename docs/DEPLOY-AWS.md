@@ -6,9 +6,35 @@ This runs the recorder, hourly Parquet compaction and the daily health report on
 
 | Item | Recommendation | Why |
 |---|---|---|
-| Instance | **t4g.small** (2 vCPU Graviton, 2 GB RAM), Ubuntu 24.04 LTS **arm64** | The recorder uses little CPU. Compaction peaks at about 3 s of CPU per hour of data. 2 GB leaves headroom for DuckDB. |
-| Disk | **gp3, 40 GB** | Raw gz is about 0.5 GB/day and Parquet about 0.35 GB/day, so 3 weeks is about 18 GB. The current hour sits uncompressed (up to ~300 MB) until it rotates. |
-| Cost | about $12/month for compute plus $3/month for disk (on-demand) | A 1-year savings plan cuts compute by about 35%. |
+| Instance | **t4g.micro** (2 vCPU Graviton, 1 GB RAM), Ubuntu 24.04 LTS **arm64**, plus 1 GB swap | Measured peaks: recorder 53 MB, hourly compaction 406 MB, daily health 197 MB. They run at different times, and swap covers spikes. Use t4g.small (2 GB) if you want more headroom or will run the dashboard on the box. |
+| Disk | **gp3, 30 GB** | Raw gz is about 0.5 GB/day and Parquet about 0.35 GB/day, so 3 weeks is about 18 GB. The current hour sits uncompressed (up to ~300 MB) until it rotates. After ~5 weeks, move old raw hours to S3 (§6) or grow the volume. |
+
+### Cost (us-east-1 on-demand; other regions are similar)
+
+| | t4g.micro | t4g.small |
+|---|---|---|
+| Compute | ~$6.10/month | ~$12.30/month |
+| gp3 disk (30 GB) | ~$2.40/month | ~$2.40/month |
+| Public IPv4 address (required for outbound access to the venues) | ~$3.65/month | ~$3.65/month |
+| **Total** | **~$12/month** | **~$18/month** |
+
+### Free tier
+
+- **New AWS accounts** (opened since 15 July 2025) get **$100 in credits, rising to $200** after a few onboarding tasks, valid for **6 months**. Either instance above runs free for the full 6 months on those credits, which covers the 3-week recording with plenty to spare.
+- **On the "Free plan":** you are never charged, but AWS closes the account when the credits or the 6 months run out, unless you upgrade to a paid plan. **Upgrade before then**, or the server and its data disappear.
+- **Older accounts:** the old 12-month free tier (750 hours/month of t3.micro/t4g.micro plus 30 GB of disk) only applies to accounts opened before 15 July 2025, within their first 12 months.
+
+Check the current terms at https://aws.amazon.com/free/ before relying on this.
+
+### Cheaper alternatives
+
+| Option | Cost | Trade-off |
+|---|---|---|
+| Your Mac at home: plugged in, external display, lid closed (clamshell) | $0 | Only while it stays put; travelling means gaps |
+| Hetzner Cloud CAX11 (2 ARM vCPU, 4 GB RAM, 40 GB disk, IPv4 included) | ~€4–5/month | Cheapest reliable paid option, with more RAM than t4g.micro; ARM only in EU locations (Germany, Finland) |
+| Oracle Cloud Always Free (ARM, up to 4 cores and 24 GB RAM, 200 GB disk) | $0, permanently | ARM capacity is often unavailable at signup, and Oracle may reclaim "idle" free instances; this workload is light on CPU |
+
+Run `node ops/probe-venues.ts` on whichever you pick: a Hetzner or Oracle location is only worth it if Polymarket latency from there is acceptable.
 
 ### Region
 
@@ -30,12 +56,16 @@ Other things the probe shows:
 - **AMI:** Ubuntu Server 24.04 LTS (arm64).
 - **Key pair:** your SSH key.
 - **Security group:** inbound **SSH (22) from your IP only**. Nothing else needs to be open, since the recorder only makes outbound connections. For the dashboard later, use an SSH tunnel instead of opening a port.
-- **Storage:** 40 GB gp3.
+- **Storage:** 30 GB gp3.
 
 ## 3. Set up the box
 
 ```sh
 ssh ubuntu@<ip>
+
+# 1 GB swap (needed on t4g.micro so compaction spikes cannot OOM the recorder)
+sudo fallocate -l 1G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 # Node 24 + git
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -

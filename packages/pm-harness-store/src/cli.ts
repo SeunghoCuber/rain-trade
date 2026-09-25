@@ -4,6 +4,8 @@
 //   node packages/pm-harness-store/src/cli.ts sql     ["<query>"]          (no query: table overview)
 // Options: --config <path> (default config/default.yaml)
 
+import { mkdirSync, rmSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { DuckDBInstance } from "@duckdb/node-api";
 import { loadConfig } from "@rain/pm-harness-core";
 import { compactAll } from "./compact.ts";
@@ -48,7 +50,12 @@ async function main() {
   switch (cmd) {
     case "compact": {
       const force = flag("--force");
-      const inst = await DuckDBInstance.create(":memory:");
+      // disk-backed scratch DB + small cap so compaction fits next to the recorder on a 1 GB instance
+      const scratch = join(dataDir, "parquet", "_tmp", "compact.duckdb");
+      mkdirSync(dirname(scratch), { recursive: true });
+      rmSync(scratch, { force: true });
+      rmSync(`${scratch}.wal`, { force: true });
+      const inst = await DuckDBInstance.create(scratch, { memory_limit: "256MB", threads: "1" });
       const conn = await inst.connect();
       const reports = await compactAll(conn, dataDir, {
         force,
@@ -63,6 +70,8 @@ async function main() {
       console.log(reports.length ? `compacted ${reports.length} hour(s)` : "nothing to compact (current hour is still being written)");
       conn.closeSync();
       inst.closeSync();
+      rmSync(scratch, { force: true });
+      rmSync(`${scratch}.wal`, { force: true });
       break;
     }
     case "health": {

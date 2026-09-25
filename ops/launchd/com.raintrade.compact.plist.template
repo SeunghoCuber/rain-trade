@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Rendered by ops/install-recorder.sh. Hourly Parquet compaction; a run missed during sleep fires on wake. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.raintrade.compact</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__NODE__</string>
+    <string>packages/pm-harness-store/src/cli.ts</string>
+    <string>compact</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__REPO__</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Minute</key>
+    <integer>7</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>__REPO__/data/compact.log</string>
+  <key>StandardErrorPath</key>
+  <string>__REPO__/data/compact.log</string>
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

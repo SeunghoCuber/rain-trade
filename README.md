@@ -22,15 +22,29 @@ pnpm check          # typecheck + lint + tests
 Records Polymarket books/trades, Chainlink, Binance and Coinbase into `data/raw/YYYY-MM-DD/HH.ndjson` (closed hours gzipped, ~0.5 GB/day).
 
 ```sh
-pnpm recorder                       # foreground, wrapped in caffeinate on macOS
-ops/install-recorder.sh             # macOS: run under launchd (restart on crash, no idle sleep)
+pnpm recorder                       # foreground (keeps the Mac awake while running)
+ops/install-recorder.sh             # macOS: recorder + compaction + health under launchd
 ops/install-recorder.sh uninstall
 tail -f data/recorder.log           # logs
 cat data/status.json                # per-feed health, refreshed every 10 s
 pnpm recorder:stats 2026-09-25      # per-market coverage, gaps, resolution, TWAP cross-check
 ```
 
-**Keep the Mac awake:** both `pnpm recorder` and the launchd agent run under `caffeinate -is`. `-i` blocks idle sleep, and `-s` blocks system sleep **only on AC power**. Closing the lid still sleeps a laptop. For the 3-week recording, keep it plugged in with the lid open, or run it on an always-on machine or VPS.
+**Keep the Mac awake:** the recorder holds a `caffeinate -is` assertion for as long as it runs (`recorder.preventSleep`). `-i` blocks idle sleep, and `-s` blocks system sleep **only on AC power**. Closing the lid sleeps a laptop unless it is plugged in with an external display (clamshell mode). Markets recorded across a sleep are flagged `GAP` and excluded, so sleep costs data, not correctness.
+
+**macOS launchd setup** (`ops/install-recorder.sh` installs three agents):
+
+| Agent | Runs | Log |
+|---|---|---|
+| `com.raintrade.recorder` | always; restarted within ~1 s of any exit; starts at login | `data/recorder.log` |
+| `com.raintrade.compact` | hourly at :07 (a run missed during sleep fires on wake) | `data/compact.log` |
+| `com.raintrade.health` | every 6 h (01:20, 07:20, 13:20, 19:20 local time) | `data/health.log` |
+
+Check it with `launchctl print gui/$(id -u)/com.raintrade.recorder | grep -E "state|pid|last exit"`.
+
+Two macOS permission problems, both because the repo lives in `~/Documents` (a privacy-protected folder):
+- **node needs access to `~/Documents`.** Grant it under System Settings → Privacy & Security → Full Disk Access, adding the node binary that `command -v node` prints. **Re-grant it after upgrading node with nvm**, because the path changes. Without it, jobs hang silently or exit 78.
+- **launchd can't open a log file created by another app** (for example one made by running `pnpm recorder >> data/recorder.log` from a terminal or editor). The agent then fails with `last exit code = 78: EX_CONFIG`. The fix is to move that log aside (`mv data/recorder.log data/recorder-old.log`) and reinstall, so launchd creates the file itself.
 
 Set `recorder.alertWebhookUrl` in the config to get feed-down / recovered alerts (POST `{"text": ...}`, works with Slack or ntfy).
 

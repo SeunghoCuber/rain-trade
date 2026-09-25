@@ -53,8 +53,8 @@ export async function compactHour(conn: DuckDBConnection, dataDir: string, h: Ra
   const appenders = new Map<TableName, DuckDBAppender>();
   for (const name of TABLE_NAMES) {
     const cols = allColumns(TABLES[name]).map(([c, t]) => `${c} ${t}`).join(", ");
-    await conn.run(`CREATE OR REPLACE TEMP TABLE ${name} (${cols})`);
-    appenders.set(name, await conn.createAppender(name, "main", "temp"));
+    await conn.run(`CREATE OR REPLACE TABLE ${name} (${cols})`);
+    appenders.set(name, await conn.createAppender(name));
   }
 
   for await (const r of readRawHour(h.path)) {
@@ -88,10 +88,11 @@ export async function compactHour(conn: DuckDBConnection, dataDir: string, h: Ra
       continue;
     }
     const file = join(tmp, `${name}.parquet`);
-    await conn.run(`COPY (SELECT * FROM temp.${name} ORDER BY recv_ts, line) TO ${sqlStr(file)} (FORMAT parquet, COMPRESSION zstd)`);
+    // rows were appended in file order (recv_ts is monotonic within a recorder run), so no sort is needed
+    await conn.run(`COPY ${name} TO ${sqlStr(file)} (FORMAT parquet, COMPRESSION zstd)`);
     written.push([file, dest]);
   }
-  for (const name of TABLE_NAMES) await conn.run(`DROP TABLE IF EXISTS temp.${name}`);
+  for (const name of TABLE_NAMES) await conn.run(`DROP TABLE IF EXISTS ${name}`);
   for (const [file, dest] of written) {
     mkdirSync(dirname(dest), { recursive: true });
     renameSync(file, dest);

@@ -67,6 +67,8 @@ export const Config = z.object({
     dropMirrored: z.boolean(),
     spotSources: z.array(z.enum(["binance", "coinbase"])).min(1),
     statusIntervalSec: z.number().positive(),
+    /** macOS: hold a `caffeinate -is` assertion for the recorder's lifetime (no idle sleep; no system sleep on AC) */
+    preventSleep: z.boolean(),
     /** POST {text} here on feed silence/recovery (Slack/ntfy/etc.); null disables */
     alertWebhookUrl: z.url().nullable(),
   }),

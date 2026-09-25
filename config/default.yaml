@@ -42,6 +42,7 @@ recorder:
   dropMirrored: true
   spotSources: [binance, coinbase]
   statusIntervalSec: 10
+  preventSleep: true          # macOS only; lid-close still sleeps unless in clamshell mode
   alertWebhookUrl: null
 
 fairValue:

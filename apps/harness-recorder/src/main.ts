@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { encodeEvent, loadConfig, makeRecvClock, type MarketEvent } from "@rain/pm-harness-core";
@@ -100,6 +101,15 @@ const discovery = new Discovery({
     log("info", `retired ${m.slug}`);
   },
 });
+
+// Keep the Mac awake from inside the process (not by wrapping it in caffeinate): launchd must start
+// node itself, or macOS privacy checks for ~/Documents apply to caffeinate and the job cannot start.
+if (rc.preventSleep && process.platform === "darwin") {
+  const c = spawn("/usr/bin/caffeinate", ["-i", "-s", "-w", String(process.pid)], { stdio: "ignore" });
+  c.on("error", (e) => log("warn", `caffeinate unavailable: ${e.message}`));
+  c.unref();
+  log("info", `sleep prevention on (caffeinate pid ${c.pid})`);
+}
 
 for (const f of globalFeeds) f.start();
 discovery.seedRecentResolutions();

@@ -7,9 +7,8 @@
   <string>com.raintrade.recorder</string>
   <key>ProgramArguments</key>
   <array>
-    <!-- caffeinate: no idle sleep / no system sleep on AC power while recording (lid-close still sleeps) -->
-    <string>/usr/bin/caffeinate</string>
-    <string>-is</string>
+    <!-- node must be the launched program so the ~/Documents permission applies;
+         the recorder runs caffeinate itself (recorder.preventSleep) -->
     <string>__NODE__</string>
     <string>apps/harness-recorder/src/main.ts</string>
     <string>config/default.yaml</string>

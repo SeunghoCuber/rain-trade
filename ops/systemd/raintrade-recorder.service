@@ -16,8 +16,8 @@ KillSignal=SIGTERM
 TimeoutStopSec=30
 StandardOutput=append:__REPO__/data/recorder.log
 StandardError=append:__REPO__/data/recorder.log
-# DuckDB/Node memory is small, but cap it so a leak cannot take the box down
-MemoryMax=1500M
+# the recorder uses ~55 MB; cap it so a leak cannot take the box down
+MemoryMax=512M
 Nice=-5
 
 [Install]
