@@ -103,6 +103,16 @@ pnpm sweep --id sweep-w1                        # grid in config/sweep.yaml; pic
 pnpm report sweep-w1                            # PLAN §10 criteria on out-of-sample pessimistic results → report.md (exit 2 = NO-GO)
 ```
 
+## Live paper trading (Phase 11)
+
+```sh
+pnpm live                                       # foreground; same engine as backtests, live feeds, no real orders
+ops/install-live.sh                             # macOS: run under launchd next to the recorder
+cat data/live/status.json                       # quotes, inventory, kill switch, latency, lag
+touch data/live/KILL                            # kill switch: stop quoting
+pnpm analyze live                               # stats on settled live markets (also on the dashboard as run "live")
+```
+
 ## Dashboard (Phase 9)
 
 ```sh
@@ -125,7 +135,7 @@ packages/
   pm-harness-analytics/   markouts, stats, report                     (Phase 8)
 apps/
   harness-recorder/       market discovery + recorder + stats CLI
-  harness-live/           live paper runner                           (Phase 11)
+  harness-live/           live paper trader + kill switch
   harness-replay/         backtest + sweep CLI                        (Phases 6, 10)
   harness-dashboard/      React + Recharts dashboard and its JSON API (server/main.ts)
 ops/                      launchd agent (Mac), systemd units (Linux), venue latency probe

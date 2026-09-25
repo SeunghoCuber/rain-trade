@@ -130,3 +130,5 @@ td.pass { color: var(--color-trading-up); font-weight: 600; }
 td.fail { color: var(--color-trading-down); font-weight: 600; }
 td.wrap, td.muted-cell { white-space: normal; }
 td.muted-cell { color: var(--color-muted); }
+
+.muted-text { color: var(--color-muted); }

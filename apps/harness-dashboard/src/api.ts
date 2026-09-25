@@ -112,6 +112,13 @@ export interface Sweep {
   report: { verdict: "GO" | "NO-GO"; criteria: { name: string; threshold: string; value: string; pass: boolean }[] } | null;
 }
 
+export interface LiveStatus {
+  updatedAt: string;
+  stale: boolean;
+  killSwitch: { halted: string | null; markets: number; cumulativePnl: number };
+  markets: { slug: string; inWindow: boolean; secondsLeft: number; fairValue: number | null }[];
+}
+
 async function get<T>(path: string): Promise<T> {
   const r = await fetch(path);
   if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
@@ -125,4 +132,5 @@ export const api = {
   market: (run: string, id: string, mode: Mode) => get<MarketDetail>(`/api/runs/${encodeURIComponent(run)}/markets/${encodeURIComponent(id)}?mode=${mode}`),
   calibration: () => get<Calibration>("/api/calibration"),
   latestSweep: () => get<Sweep | null>("/api/sweeps/latest"),
+  liveStatus: () => get<LiveStatus | null>("/api/live/status"),
 };

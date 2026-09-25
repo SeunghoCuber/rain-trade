@@ -254,6 +254,17 @@ The zero-strategy and determinism tests should be written during Phases 3 to 6, 
 
 ## Phase 11: Live paper runner (~2 days, can run in parallel from Phase 6 on)
 
+> **Status: done (2026-09-25).** Code: `apps/harness-live` (`pnpm live`; `ops/install-live.sh` on the Mac, `ops/install-systemd.sh --with-live` on a server) and `pm-harness-feeds/live-feeds.ts`.
+> - **Same engine and feed code:** the live runner uses the same `BacktestRunner` as backtests, on a `LiveClock`. It is fed by `LiveFeeds`, the connection code now shared with the recorder, through an `AsyncEventQueue`. No orders are ever sent.
+> - **Outputs:**
+>   - `data/live/live/*.ndjson` gets appended as each market settles.
+>   - `data/runs/live/` is re-exported every 10 min, so `pnpm analyze live` and the dashboard work on live results.
+>   - `data/live/status.json` is written every 10 s.
+>   - A market this process joined mid-window is marked `live_partial`.
+> - **Kill switch:** trips on a manual `data/live/KILL` file, on a pessimistic drawdown > `live.killSwitch.maxDrawdownUsd`, or on a rolling 7-day edge < floor after `minMarkets`. It pulls all quotes and stays tripped until restart.
+> - **Latency:** the WebSocket wrapper now measures application ping round trips. The CLOB is about **150–155 ms from the Mac**, which matches the base mode's 150 ms. Chainlink's RTDS feed doesn't answer pings.
+> - **Timing (verified live):** the runner joined at 16:12 UTC, correctly didn't quote the 16:00 market (it hadn't seen that window's S₀ ticks), then quoted the 16:15 market in all modes (FV 0.649, bid/ask 0.62/0.68) with 0 ms processing lag.
+
 - `harness-live` connects the live event clock to the same engine and writes results to DuckDB as they happen.
 - A rolling 7-day edge monitor and a kill switch.
 - A measurement of the real WebSocket round-trip latency (a mitigation from §12). The result feeds back into the latency settings for each fill mode.

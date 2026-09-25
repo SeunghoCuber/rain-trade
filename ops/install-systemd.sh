@@ -2,16 +2,17 @@
 # Install the recorder + hourly compaction + daily health report as systemd units (Linux).
 # Run from the repo on the server as the user that should own the data (not root):
 #   ops/install-systemd.sh             install + start (asks for sudo)
+#   ops/install-systemd.sh --with-live also run the live paper trader
 #   ops/install-systemd.sh uninstall   stop + remove
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 USER_NAME="$(id -un)"
-UNITS=(raintrade-recorder.service raintrade-compact.service raintrade-compact.timer raintrade-health.service raintrade-health.timer)
+UNITS=(raintrade-recorder.service raintrade-compact.service raintrade-compact.timer raintrade-health.service raintrade-health.timer raintrade-live.service)
 DEST=/etc/systemd/system
 
 if [[ "${1:-}" == "uninstall" ]]; then
-  sudo systemctl disable --now raintrade-recorder.service raintrade-compact.timer raintrade-health.timer 2>/dev/null || true
+  sudo systemctl disable --now raintrade-recorder.service raintrade-compact.timer raintrade-health.timer raintrade-live.service 2>/dev/null || true
   for u in "${UNITS[@]}"; do sudo rm -f "$DEST/$u"; done
   sudo systemctl daemon-reload
   echo "removed raintrade units"
@@ -29,6 +30,7 @@ for u in "${UNITS[@]}"; do
 done
 sudo systemctl daemon-reload
 sudo systemctl enable --now raintrade-recorder.service raintrade-compact.timer raintrade-health.timer
+if [[ "${1:-}" == "--with-live" ]]; then sudo systemctl enable --now raintrade-live.service; fi
 echo
 systemctl --no-pager status raintrade-recorder.service | head -5
 systemctl --no-pager list-timers 'raintrade-*'

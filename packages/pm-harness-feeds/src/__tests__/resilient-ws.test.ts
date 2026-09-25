@@ -111,6 +111,17 @@ describe("ResilientWs", () => {
     await until(() => s.received.filter((m) => m === "PING").length >= 2);
   });
 
+  it("measures the ping round trip from the PONG reply", async () => {
+    const s = await server();
+    const { c } = client(s.url, { ping: { payload: "PING", intervalMs: 30 } });
+    await until(() => s.sockets.length === 1);
+    s.sockets[0]!.on("message", (m) => String(m) === "PING" && s.sockets[0]!.send("PONG"));
+    await until(() => c.stats.rttMs !== null);
+    expect(c.stats.rttMs!).toBeGreaterThanOrEqual(0);
+    expect(c.stats.rttMs!).toBeLessThan(1000);
+    expect(c.stats.rttEwmaMs).not.toBeNull();
+  });
+
   it("stays stopped after stop()", async () => {
     const s = await server();
     const { c } = client(s.url);

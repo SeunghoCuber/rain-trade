@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Rendered by ops/install-recorder.sh; do not load this template directly. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.raintrade.live</string>
+  <key>ProgramArguments</key>
+  <array>
+    <!-- node must be the launched program so the ~/Documents permission applies;
+         the live runner holds its own caffeinate assertion (recorder.preventSleep) -->
+    <string>__NODE__</string>
+    <string>apps/harness-live/src/main.ts</string>
+    <string>config/default.yaml</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__REPO__</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <!-- restart on crash or any exit; ThrottleInterval spaces restarts -->
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>__REPO__/data/live.log</string>
+  <key>StandardErrorPath</key>
+  <string>__REPO__/data/live.log</string>
+  <!-- keep recording while the Mac is idle -->
+  <key>ProcessType</key>
+  <string>Interactive</string>
+</dict>
+</plist>

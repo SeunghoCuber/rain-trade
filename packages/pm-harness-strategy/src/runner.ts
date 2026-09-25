@@ -385,6 +385,27 @@ export class BacktestRunner {
     }
   }
 
+  /** Drop everything held for a settled market (long-running live processes). */
+  forget(marketId: string): void {
+    this.fvSeries.delete(marketId);
+    this.nextFvSample.delete(marketId);
+    this.states.markets.delete(marketId);
+    for (const st of this.modes) {
+      st.ledgers.delete(marketId);
+      st.fills.delete(marketId);
+      st.lastQuote.delete(marketId);
+      st.eligibleSamples.delete(marketId);
+      st.bothLiveSamples.delete(marketId);
+      st.cancelLatencyFills.delete(marketId);
+    }
+    for (let i = this.quotes.length - 1; i >= 0; i--) if (this.quotes[i]!.marketId === marketId) this.quotes.splice(i, 1);
+  }
+
+  /** Live view: net inventory per mode for a market. */
+  inventory(marketId: string): Partial<Record<FillMode, number>> {
+    return Object.fromEntries(this.modes.map((st) => [st.mode, st.ledgers.get(marketId)?.inventory ?? 0]));
+  }
+
   allFills(): FillRow[] {
     return this.modes.flatMap((st) => [...st.fills.values()].flat());
   }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, MODES, type Calibration, type MarketDetail, type MarketRow, type Mode, type RunAnalysis, type RunInfo, type Sweep } from "./api.ts";
+import { api, MODES, type Calibration, type MarketDetail, type MarketRow, type Mode, type RunAnalysis, type LiveStatus, type RunInfo, type Sweep } from "./api.ts";
 import {
   BootstrapDist,
   CumulativePnl,
@@ -44,6 +44,13 @@ export function App() {
   const [detail, setDetail] = useState<MarketDetail | null>(null);
   const [cal, setCal] = useState<Calibration | null>(null);
   const [sweep, setSweep] = useState<Sweep | null>(null);
+  const [live, setLive] = useState<LiveStatus | null>(null);
+  useEffect(() => {
+    const poll = () => api.liveStatus().then(setLive, () => setLive(null));
+    poll();
+    const t = setInterval(poll, 10_000);
+    return () => clearInterval(t);
+  }, []);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -93,6 +100,16 @@ export function App() {
             </select>
           </label>
           <span className="chip static">Coin: BTC 15m</span>
+          <span className="chip static" title={live?.killSwitch.halted ?? (live?.stale ? "status file is stale" : "live paper trading (no real orders)")}>
+            Live paper:{" "}
+            {!live || live.stale ? (
+              <span className="muted-text">off</span>
+            ) : live.killSwitch.halted ? (
+              <span className="down">✕ halted</span>
+            ) : (
+              <span className="up">● quoting</span>
+            )}
+          </span>
         </div>
       </header>
       <main>

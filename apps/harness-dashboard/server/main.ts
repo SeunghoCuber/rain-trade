@@ -83,6 +83,13 @@ async function handle(url: URL, res: ServerResponse): Promise<void> {
       return json(res, 200, { meta, fv, quotes, fills });
     }
   }
+  if (parts[0] === "live" && parts[1] === "status") {
+    const f = join(cfg.live.outDir, "status.json");
+    if (!existsSync(f)) return json(res, 200, null);
+    const s = JSON.parse(readFileSync(f, "utf8")) as { updatedAt: string };
+    // a status older than 60 s means the live runner is not running
+    return json(res, 200, { ...s, stale: Date.now() - Date.parse(s.updatedAt) > 60_000 });
+  }
   if (parts[0] === "sweeps") {
     const root = join(dataDir, "sweeps");
     const ids = existsSync(root) ? readdirSync(root).filter((d) => existsSync(join(root, d, "sweep.json"))) : [];

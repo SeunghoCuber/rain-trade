@@ -2,17 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { encodeEvent, loadConfig, makeRecvClock, type MarketEvent } from "@rain/pm-harness-core";
-import {
-  clobFeedName,
-  createBinanceFeed,
-  createClobFeed,
-  createCoinbaseFeed,
-  createRtdsFeed,
-  defaultFetchJson,
-  Discovery,
-  type FeedHooks,
-  type ResilientWs,
-} from "@rain/pm-harness-feeds";
+import { clobFeedName, LiveFeeds, type FeedHooks } from "@rain/pm-harness-feeds";
 import { Health, makeAlert } from "./health.ts";
 import { HourlyNdjsonWriter } from "./writer.ts";
 
@@ -70,36 +60,12 @@ const hooks: FeedHooks = {
   },
 };
 
-const globalFeeds: ResilientWs[] = [createRtdsFeed(cfg, hooks)];
-if (rc.spotSources.includes("binance")) globalFeeds.push(createBinanceFeed(cfg, hooks));
-if (rc.spotSources.includes("coinbase")) globalFeeds.push(createCoinbaseFeed(cfg, hooks));
-
-const clobFeeds = new Map<string, ResilientWs>();
-const discovery = new Discovery({
-  gammaUrl: cfg.venue.gammaUrl,
-  slugPrefix: cfg.market.slugPrefix,
-  durationSec: cfg.market.durationSec,
-  discoveryPollSec: rc.discoveryPollSec,
-  preRegisterSec: rc.preRegisterSec,
-  postCloseGraceSec: rc.postCloseGraceSec,
-  resolutionGiveUpSec: rc.resolutionGiveUpSec,
-  fetchJson: defaultFetchJson,
-  emit,
-  recvTs,
-  now,
+const feeds = new LiveFeeds({
+  cfg,
+  hooks,
   log,
-  onOpen: (m) => {
-    const feed = createClobFeed(cfg, m, hooks);
-    clobFeeds.set(m.marketId, feed);
-    health.feed(clobFeedName(m));
-    feed.start();
-  },
-  onRetire: (m) => {
-    clobFeeds.get(m.marketId)?.stop();
-    clobFeeds.delete(m.marketId);
-    health.remove(clobFeedName(m));
-    log("info", `retired ${m.slug}`);
-  },
+  onMarketOpen: (m) => health.feed(clobFeedName(m)),
+  onMarketRetire: (m) => health.remove(clobFeedName(m)),
 });
 
 // Keep the Mac awake from inside the process (not by wrapping it in caffeinate): launchd must start
@@ -111,25 +77,10 @@ if (rc.preventSleep && process.platform === "darwin") {
   log("info", `sleep prevention on (caffeinate pid ${c.pid})`);
 }
 
-for (const f of globalFeeds) f.start();
-discovery.seedRecentResolutions();
-
-let refreshing = false;
-const refresh = async () => {
-  if (refreshing) return;
-  refreshing = true;
-  try {
-    await discovery.refresh();
-  } finally {
-    refreshing = false;
-  }
-};
-void refresh();
+feeds.start();
 
 const statusPath = join(rc.dataDir, "status.json");
 const timers = [
-  setInterval(() => void refresh(), rc.discoveryPollSec * 1000),
-  setInterval(() => discovery.tick(), 250),
   setInterval(() => {
     health.check();
     health.writeStatus(statusPath, {
@@ -138,8 +89,9 @@ const timers = [
       linesWritten: writer.lines,
       bytesWritten: writer.bytes,
       eventCounts: counts,
-      activeMarkets: discovery.activeMarkets.map((m) => m.slug),
-      pendingResolutions: discovery.pendingResolutions,
+      activeMarkets: feeds.activeMarkets.map((m) => m.slug),
+      pendingResolutions: feeds.pendingResolutions,
+      rttMs: feeds.rtt(),
     });
   }, rc.statusIntervalSec * 1000),
 ];
@@ -152,7 +104,7 @@ async function shutdown(signal: string, code = 0) {
   stopping = true;
   log("info", `${signal}: shutting down`);
   for (const t of timers) clearInterval(t);
-  for (const f of [...globalFeeds, ...clobFeeds.values()]) f.stop();
+  feeds.stop();
   await writer.close();
   log("info", `flushed ${writer.lines} lines; bye`);
   process.exit(code);

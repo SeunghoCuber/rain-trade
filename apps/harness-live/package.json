@@ -7,6 +7,10 @@
     "start": "node src/main.ts"
   },
   "dependencies": {
-    "@rain/pm-harness-core": "workspace:*"
+    "@duckdb/node-api": "1.5.5-r.5",
+    "@rain/pm-harness-core": "workspace:*",
+    "@rain/pm-harness-feeds": "workspace:*",
+    "@rain/pm-harness-store": "workspace:*",
+    "@rain/pm-harness-strategy": "workspace:*"
   }
 }

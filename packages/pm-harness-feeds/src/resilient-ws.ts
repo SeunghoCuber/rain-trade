@@ -27,6 +27,9 @@ export interface WsStats {
   frames: number;
   reconnects: number;
   lastFrameMs: number | null;
+  /** round trip of the application ping (PING → PONG / empty frame), last and EWMA */
+  rttMs: number | null;
+  rttEwmaMs: number | null;
 }
 
 /** WebSocket with reconnect + exponential backoff, keepalive, and a silence watchdog. */
@@ -42,9 +45,14 @@ export class ResilientWs {
   /** when the current connection opened; a fresh connection gets a full silenceMs before it can be judged silent */
   private openedMs = 0;
   private readonly now: () => number;
-  readonly stats: WsStats = { connected: false, frames: 0, reconnects: 0, lastFrameMs: null };
+  readonly stats: WsStats = { connected: false, frames: 0, reconnects: 0, lastFrameMs: null, rttMs: null, rttEwmaMs: null };
+  private pingSentAt: number | null = null;
 
   private readonly o: ResilientWsOptions;
+
+  get name(): string {
+    return this.o.name;
+  }
 
   constructor(o: ResilientWsOptions) {
     this.o = o;
@@ -78,7 +86,11 @@ export class ResilientWs {
       this.o.onOpen((d) => ws.readyState === WebSocket.OPEN && ws.send(d));
       if (this.o.ping) {
         const { payload, intervalMs } = this.o.ping;
-        this.pingTimer = setInterval(() => ws.readyState === WebSocket.OPEN && ws.send(payload), intervalMs);
+        this.pingTimer = setInterval(() => {
+          if (ws.readyState !== WebSocket.OPEN) return;
+          this.pingSentAt = performance.now();
+          ws.send(payload);
+        }, intervalMs);
       }
     };
     ws.onmessage = (e: MessageEvent) => {
@@ -88,6 +100,13 @@ export class ResilientWs {
         this.o.onGap(t - this.stats.lastFrameMs, this.outage);
       }
       this.outage = null;
+      // Polymarket answers "PING" with "PONG" (CLOB) or an empty frame (RTDS)
+      if (this.pingSentAt !== null && (e.data === "PONG" || e.data === "")) {
+        const rtt = performance.now() - this.pingSentAt;
+        this.pingSentAt = null;
+        this.stats.rttMs = rtt;
+        this.stats.rttEwmaMs = this.stats.rttEwmaMs === null ? rtt : 0.8 * this.stats.rttEwmaMs + 0.2 * rtt;
+      }
       this.stats.frames++;
       this.stats.lastFrameMs = t;
       if (typeof e.data === "string") this.o.onMessage(e.data);
