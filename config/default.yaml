@@ -48,6 +48,10 @@ recorder:
 fairValue:
   volHalfLivesSec: [60, 600]
   spotInput: spot_mid
+  initSigmaPerSec: 0.00009
+  basisHalfLifeSec: 120
+  spotStaleMs: 2000
+  twapNoiseUsd: 0.2
 
 strategy:
   halfSpread: 0.01

@@ -93,6 +93,13 @@ This document breaks the design in [PLAN.md](PLAN.md) into phases for building R
 
 ## Phase 4: Fair value engine (~3 days)
 
+> **Status: done (2026-09-25).** Code: `pm-harness-strategy/src/fair-value.ts`; run the calibration with `pnpm fv:calibrate`.
+> - **The model prices the verified payoff:** closing 60 s Chainlink TWAP ≥ S₀. It doesn't use the plain spot digital: ticks already observed in the closing window are fixed, and future ticks add variance. The price level is spot mid × a tracked spot-to-Chainlink basis, and S₀ is our TWAP, with RTDS noise as a floor.
+> - **Calibration on the first 32 resolved markets:**
+>   - **Brier score:** FV 0.1388 vs Polymarket mid 0.1372, about 1% worse overall, within noise at this sample size. FV is better at 5–10 min left.
+>   - **Lead/lag:** corr(ΔFV_t, Δmid_{t+1s}) = 0.25 vs 0.06 at −1 s, so **FV leads the market mid by about 1 s**.
+> - **Output:** samples are saved to `data/analysis/fv_samples.parquet` for chart V8.
+
 - An EWMA estimate of volatility from 1-second log returns, blending the 60 s and 600 s half-lives.
 - The digital-option fair value Φ(ln(S/S₀)/σ√τ), taking S₀ from the resolution source (§4.3).
 - `FairValue` logged for every tick.

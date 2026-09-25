@@ -5,3 +5,4 @@ export * from "./health.ts";
 export * from "./day.ts";
 export * from "./store.ts";
 export * from "./replay.ts";
+export * from "./write.ts";

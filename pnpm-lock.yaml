@@ -239,6 +239,9 @@ importers:
       '@rain/pm-harness-store':
         specifier: workspace:*
         version: link:../../packages/pm-harness-store
+      '@rain/pm-harness-strategy':
+        specifier: workspace:*
+        version: link:../../packages/pm-harness-strategy
 
   packages/pm-harness-analytics:
     dependencies:

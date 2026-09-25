@@ -73,8 +73,18 @@ export const Config = z.object({
     alertWebhookUrl: z.url().nullable(),
   }),
   fairValue: z.object({
+    /** EWMA half-lives of 1 s log-return variance; the variances are averaged */
     volHalfLivesSec: z.array(z.number().positive()).min(1),
+    /** spot_mid: Binance/Coinbase mid shifted onto the Chainlink level by a tracked basis; res_price: latest Chainlink tick */
     spotInput: z.enum(["spot_mid", "res_price"]),
+    /** prior per-second log vol until the EWMAs warm up (BTC ≈ 50%/yr ≈ 9e-5 /√s) */
+    initSigmaPerSec: z.number().positive(),
+    /** EWMA half-life of ln(Chainlink / spot mid) */
+    basisHalfLifeSec: z.number().positive(),
+    /** spot feed older than this falls back to the next source (Binance → Coinbase → Chainlink) */
+    spotStaleMs: z.number().positive(),
+    /** sd (USD) for our TWAP / S0 vs the official reference (RTDS reproduces it to ≤ ~$0.7, median ~$0.05) */
+    twapNoiseUsd: z.number().nonnegative(),
   }),
   strategy: z.object({
     halfSpread: z.number().nonnegative(),

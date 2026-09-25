@@ -9,6 +9,7 @@
   "dependencies": {
     "@duckdb/node-api": "1.5.5-r.5",
     "@rain/pm-harness-core": "workspace:*",
-    "@rain/pm-harness-store": "workspace:*"
+    "@rain/pm-harness-store": "workspace:*",
+    "@rain/pm-harness-strategy": "workspace:*"
   }
 }

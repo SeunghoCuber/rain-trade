@@ -16,7 +16,8 @@
     "data:compact": "node packages/pm-harness-store/src/cli.ts compact",
     "data:health": "node packages/pm-harness-store/src/cli.ts health",
     "data:sql": "node packages/pm-harness-store/src/cli.ts sql",
-    "replay": "node apps/harness-replay/src/main.ts"
+    "replay": "node apps/harness-replay/src/main.ts",
+    "fv:calibrate": "node apps/harness-replay/src/calibrate.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
