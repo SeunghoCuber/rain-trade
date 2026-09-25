@@ -233,6 +233,9 @@ importers:
       '@duckdb/node-api':
         specifier: 1.5.5-r.5
         version: 1.5.5-r.5
+      '@rain/pm-harness-analytics':
+        specifier: workspace:*
+        version: link:../../packages/pm-harness-analytics
       '@rain/pm-harness-core':
         specifier: workspace:*
         version: link:../../packages/pm-harness-core
@@ -245,9 +248,15 @@ importers:
 
   packages/pm-harness-analytics:
     dependencies:
+      '@duckdb/node-api':
+        specifier: 1.5.5-r.5
+        version: 1.5.5-r.5
       '@rain/pm-harness-core':
         specifier: workspace:*
         version: link:../pm-harness-core
+      '@rain/pm-harness-store':
+        specifier: workspace:*
+        version: link:../pm-harness-store
 
   packages/pm-harness-core:
     dependencies:

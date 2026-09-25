@@ -19,7 +19,8 @@
     "replay": "node apps/harness-replay/src/main.ts",
     "fv:calibrate": "node apps/harness-replay/src/calibrate.ts",
     "backtest": "node apps/harness-replay/src/backtest.ts",
-    "sanity": "node apps/harness-replay/src/sanity.ts"
+    "sanity": "node apps/harness-replay/src/sanity.ts",
+    "analyze": "node apps/harness-replay/src/analyze.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

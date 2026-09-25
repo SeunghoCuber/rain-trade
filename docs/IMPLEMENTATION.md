@@ -184,6 +184,19 @@ The zero-strategy and determinism tests should be written during Phases 3 to 6, 
 
 ## Phase 8: Analytics core (~5 days)
 
+> **Status: done (2026-09-25).** Code: `pm-harness-analytics` (`analyzeRun`, `blockBootstrap`, `drawdown`, `loadRun`); run with `pnpm analyze <runId>`, which prints the full table and writes `data/runs/<runId>/analysis.json` for the dashboard. It covers:
+> - markouts at 0.5–120 s and at settlement, with bootstrap CIs
+> - every §7.3 metric
+> - block bootstrap (10k draws) for mean PnL/market and edge ¢/share, with and without rebates; the t-stat; P(edge > 0)
+> - every §7.6 breakdown, plus the V5/V6/V9 datasets
+>
+> Other rules:
+> - **Exclusions:** markets excluded by the health report are dropped from headline numbers; a market without a health row counts as excluded. `pnpm analyze` refreshes health for the run's days first.
+> - **Bootstrap blocks** are UTC days once there are ≥ 5 days, hours before that.
+> - **Sharpe** is only reported with ≥ 5 days.
+>
+> **First read on ~12 h of data** (29 usable markets): base edge +1.7¢/share, 95% CI [−1.8, +6.9]; pessimistic +0.4¢, CI [−3.7, +6.0]. That is not significant, as expected at this sample size.
+
 - PnL decomposition for each fill at several horizons (§7.1), and markout curves (§7.2).
 - The core stats from §7.3, and breakdowns by every dimension in §7.6.
 - A block bootstrap that resamples whole days (10k draws), the t-stat, and the probability that the edge is positive (§7.4). This is in TypeScript; a Python notebook is optional later.

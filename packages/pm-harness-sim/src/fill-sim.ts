@@ -48,6 +48,7 @@ export interface FillInfo {
 
 export interface FillSimStats {
   placed: number;
+  placedSize: number;
   rejected: number;
   cancelled: number;
   filledOrders: number;
@@ -67,7 +68,7 @@ export class FillSim {
   /** open (not done) orders by market */
   private readonly open = new Map<string, Map<string, SimOrderState>>();
   private seq = 0;
-  readonly stats: FillSimStats = { placed: 0, rejected: 0, cancelled: 0, filledOrders: 0, fills: 0, filledSize: 0, cancelLatencyFills: 0 };
+  readonly stats: FillSimStats = { placed: 0, placedSize: 0, rejected: 0, cancelled: 0, filledOrders: 0, fills: 0, filledSize: 0, cancelLatencyFills: 0 };
 
   constructor(opts: {
     mode: FillMode;
@@ -118,6 +119,7 @@ export class FillSim {
     if (!m) this.open.set(marketId, (m = new Map()));
     m.set(o.orderId, o);
     this.stats.placed++;
+    this.stats.placedSize += size;
     this.clock.schedule(now + this.ns(this.p.ackLatencyMs), () => this.goLive(o));
     return o;
   }

@@ -81,7 +81,20 @@ export async function backtest(o: BacktestOptions): Promise<BacktestOutput> {
     );
     writeFileSync(
       join(dir, "run.json"),
-      JSON.stringify({ runId: o.runId, strategy: runner.modes[0]?.strategy.name, createdAt: new Date().toISOString(), replay: o.replay ?? {}, digest, events: runner.events, config: o.cfg }, null, 2),
+      JSON.stringify(
+        {
+          runId: o.runId,
+          strategy: runner.modes[0]?.strategy.name,
+          createdAt: new Date().toISOString(),
+          replay: o.replay ?? {},
+          digest,
+          events: runner.events,
+          simStats: Object.fromEntries(runner.modes.map((m) => [m.mode, m.sim.stats])),
+          config: o.cfg,
+        },
+        null,
+        2,
+      ),
     );
   }
   return { runner, dir, digest, wallMs: Date.now() - t0 };

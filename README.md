@@ -89,6 +89,11 @@ pnpm backtest --run-id mm-v1                    # all recorded data, all three f
 pnpm backtest --from 2026-09-25T00:00Z --to 2026-09-26T00:00Z --strategy none
 ```
 
+```sh
+pnpm analyze mm-v1                              # PLAN §7 stats, bootstrap CIs, markouts, breakdowns → analysis.json
+pnpm sanity                                     # PLAN §9 invariants on closed hours (exit 1 on failure)
+```
+
 Outputs go to `data/runs/<runId>/`: `fills.parquet`, `markets.parquet` (per market × mode: PnL decomposition, rebate, uptime), `fv.parquet` (FV every 250 ms), `quotes.parquet` and `run.json` (config + results digest).
 
 ## Layout
