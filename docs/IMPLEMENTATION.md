@@ -207,6 +207,20 @@ The zero-strategy and determinism tests should be written during Phases 3 to 6, 
 
 ## Phase 9: Dashboard (~7 days)
 
+> **Status: done (2026-09-25).** Code: `apps/harness-dashboard`: a React + Recharts UI styled from DESIGN.md, and `server/main.ts`, a dependency-free JSON API over the run outputs.
+> - **Run it:** `pnpm dashboard` builds and serves at http://127.0.0.1:8787. For development, run `pnpm dashboard:api` and `pnpm --filter harness-dashboard dev`.
+> - **Contents:**
+>   - Run and mode selectors (default pessimistic) and the KPI row.
+>   - V1–V9, V11 and V12, from `analysis.json` and `fv_samples.parquet`.
+>   - A sortable market table with excluded markets dimmed; clicking a row opens the V7 drill-down.
+>   - V10 is a placeholder until the Phase 10 sweeps exist.
+>   - URLs are linkable (`?mode=`, `?market=`).
+> - **Chart rules:**
+>   - Colors are the validated dataviz reference steps for dark mode, checked against the card surface `#1e2329`: the three modes pass all-pairs, the four PnL components pass adjacent.
+>   - No chart has two y-axes; V7's inventory is a separate chart.
+>   - Every multi-series chart has a legend, every chart has hover tooltips and a "Show data" table.
+>   - It was checked at 1440 px and 390 px (no page overflow).
+
 - A small API over DuckDB, plus a React and Recharts front end with the layout from §8.
 - **Build order:**
   1. The KPI row, V1, V2, V3, V12, then the market table with the V7 drill-down. These answer "is there an edge, and why?".

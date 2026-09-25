@@ -9,8 +9,13 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@duckdb/node-api": "1.5.5-r.5",
+    "@rain/pm-harness-analytics": "workspace:*",
+    "@rain/pm-harness-core": "workspace:*",
+    "@rain/pm-harness-store": "workspace:*",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

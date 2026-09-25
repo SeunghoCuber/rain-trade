@@ -20,7 +20,9 @@
     "fv:calibrate": "node apps/harness-replay/src/calibrate.ts",
     "backtest": "node apps/harness-replay/src/backtest.ts",
     "sanity": "node apps/harness-replay/src/sanity.ts",
-    "analyze": "node apps/harness-replay/src/analyze.ts"
+    "analyze": "node apps/harness-replay/src/analyze.ts",
+    "dashboard:api": "node apps/harness-dashboard/server/main.ts",
+    "dashboard": "pnpm --filter harness-dashboard build && node apps/harness-dashboard/server/main.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

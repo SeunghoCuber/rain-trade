@@ -96,6 +96,15 @@ pnpm sanity                                     # PLAN §9 invariants on closed 
 
 Outputs go to `data/runs/<runId>/`: `fills.parquet`, `markets.parquet` (per market × mode: PnL decomposition, rebate, uptime), `fv.parquet` (FV every 250 ms), `quotes.parquet` and `run.json` (config + results digest).
 
+## Dashboard (Phase 9)
+
+```sh
+pnpm dashboard                                  # build UI + serve on http://127.0.0.1:8787
+pnpm dashboard:api & pnpm --filter harness-dashboard dev   # dev mode with hot reload (Vite proxies /api)
+```
+
+It reads `data/runs/*` (run `pnpm backtest` first) and `data/analysis/fv_samples.parquet` (from `pnpm fv:calibrate`). The analysis is recomputed automatically when a run is newer than its `analysis.json`.
+
 ## Layout
 
 ```
@@ -111,7 +120,7 @@ apps/
   harness-recorder/       market discovery + recorder + stats CLI
   harness-live/           live paper runner                           (Phase 11)
   harness-replay/         backtest + sweep CLI                        (Phases 6, 10)
-  harness-dashboard/      Vite + React dashboard (`pnpm --filter harness-dashboard dev`)
+  harness-dashboard/      React + Recharts dashboard and its JSON API (server/main.ts)
 ops/                      launchd agent (Mac), systemd units (Linux), venue latency probe
 docs/samples/             raw API/WebSocket captures backing docs/VERIFIED.md
 ```
