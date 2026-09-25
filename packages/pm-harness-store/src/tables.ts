@@ -37,11 +37,15 @@ export const TABLES = {
       ["best_ask", "DOUBLE"],
     ],
   },
-  /** one row per level of a full book snapshot; side BUY = bids, SELL = asks */
+  /**
+   * one row per level of a full book snapshot; side BUY = bids, SELL = asks; `idx` = position in
+   * the snapshot (bids first, then asks) so replay reproduces it exactly; an empty book is one row with side NULL
+   */
   book_levels: {
     name: "book_levels",
     columns: [
       ["market_id", "VARCHAR"],
+      ["idx", "SMALLINT"],
       ["token", "VARCHAR"],
       ["side", "VARCHAR"],
       ["price", "DOUBLE"],
@@ -166,10 +170,16 @@ export function rowsFor(ev: MarketEvent): [TableName, Value[]][] {
         [mid, i, c.token, c.side, c.price, c.size, c.bestBid, c.bestAsk],
       ]);
     case "book_snapshot":
-      return [
-        ...ev.payload.bids.map((l): [TableName, Value[]] => ["book_levels", [mid, ev.token ?? null, "BUY", l.price, l.size, ev.payload.hash]]),
-        ...ev.payload.asks.map((l): [TableName, Value[]] => ["book_levels", [mid, ev.token ?? null, "SELL", l.price, l.size, ev.payload.hash]]),
-      ];
+      if (ev.payload.bids.length + ev.payload.asks.length === 0) {
+        return [["book_levels", [mid, 0, ev.token ?? null, null, null, null, ev.payload.hash]]];
+      }
+      {
+        const nb = ev.payload.bids.length;
+        return [
+          ...ev.payload.bids.map((l, i): [TableName, Value[]] => ["book_levels", [mid, i, ev.token ?? null, "BUY", l.price, l.size, ev.payload.hash]]),
+          ...ev.payload.asks.map((l, i): [TableName, Value[]] => ["book_levels", [mid, nb + i, ev.token ?? null, "SELL", l.price, l.size, ev.payload.hash]]),
+        ];
+      }
     case "trade": {
       const p = ev.payload;
       return [["trades", [mid, ev.token ?? null, p.side, p.price, p.size, p.feeRateBps, p.txHash]]];

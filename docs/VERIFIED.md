@@ -72,6 +72,14 @@ Source: [samples/clob-ws-market.ndjson.gz](samples/clob-ws-market.ndjson.gz) (75
   - **Implication:** a resting UP bid at p is filled by UP `SELL` prints at ≤ p **and** DOWN `BUY` prints at ≥ 1−p. `complementaryMatching` must be **on**, otherwise about half of the flow is missed.
 - `price_change.size` is the **new total size** at the level (0 = removed), not an increment. Each change also carries `best_bid` / `best_ask`.
 - **Trades print once**, on one token only, and `side` is the **taker's side**. For example, DOWN `BUY @0.70` lifts the DOWN ask, which is the same as hitting the UP bid at 0.30. Sizes can be fractional (e.g. `109.375`) because of dollar-denominated market orders. The print carries `fee_rate_bps` and `transaction_hash`.
+- **Liquidity consumed by a match is never sent as a level update.** When an incoming order crosses, the feed sends the new resting remainder (if any) and a trade print, but no update removing the maker level it consumed. The consumption shows up only as a worse `best_bid`/`best_ask` on the next change, and in the next snapshot. The book model prunes every level better than the reported best, since matching takes the best levels first (`Book.pruneToReported`). Over 9 h this removed 4,737 levels.
+- **An empty side is reported as `best_bid: "0"` / `best_ask: "1"`**, not as missing. This happens near resolution, when one side of the book empties.
+- **Some resting orders disappear without a level update.** Before a snapshot, the rebuilt book is sometimes *larger* than the snapshot at a level, by round amounts (5, 15, 30, 40 shares), with no trade nearby. It happens mostly deep in the book, and in the first minute of a window. A likely cause is expiring (GTD) orders, or orders removed for insufficient balance. The next snapshot corrects it.
+- **Snapshots always come in UP/DOWN pairs** with the same timestamp (25 + 25 in 75 s), so storing only the UP one loses nothing.
+- **Reconstruction accuracy** (Phase 3, 10M events over 9 h, `pnpm replay`):
+  - **Best bid/ask:** matches the venue's reported best on 99.9995% of 7.4M level changes.
+  - **Snapshots:** 2.5% of 24.5k snapshots differ at some level, but only 112 levels in total are within 5 ticks of best, about 80% of them in a window's first minute.
+  - **The Phase 0 capture rebuilds exactly**, with zero mismatches (`reconstruction.test.ts`).
 - `book` snapshots arrive often (50 in 75 s, 14 within 500 ms after a trade). They are useful for resynchronizing the book.
 - **Data volume:** about **420 msg/s** and 23 MB raw in 75 s for one active market, or about 26 GB/day uncompressed. Storing only the UP side of each mirrored pair, in a compact form, cuts this **~10.5×**, and gzip reduces it further. The Phase 1 recorder should do this. The DOWN book can always be derived.
 

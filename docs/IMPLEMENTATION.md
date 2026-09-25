@@ -69,6 +69,20 @@ This document breaks the design in [PLAN.md](PLAN.md) into phases for building R
 
 ## Phase 3: Event clock and replay (~4 days)
 
+> **Status: done (2026-09-25).** Code: `pm-harness-core` (`ReplayClock`, `LiveClock`, `runReplay`, `AsyncEventQueue`, `Book`, `MarketStates`, `Rng`, `canonicalEvent`), `pm-harness-store/replay.ts`, `apps/harness-replay` (`pnpm replay`). Exit check on 10M recorded events:
+> - **Books:** best bid/ask agrees with the venue on 99.9995% of level changes. Snapshot differences near the top of the book are rare and explained ([VERIFIED.md](VERIFIED.md) §3).
+> - **Determinism:** two full replays give identical digests.
+> - **Lossless compaction:** Parquet and raw replays give identical digests.
+>
+> Findings that changed the design:
+> - **Matches remove maker liquidity silently.** The book prunes levels using the reported best bid/ask.
+> - **The venue reports an empty side as 0 / 1**, not as missing.
+> - **A recorder restart shows up in the data as a second `market_open`** for the same market, so replay stops trusting that book until the next snapshot.
+> - **Snapshots need their level order stored** (`book_levels.idx`) for byte-identical replays.
+> - **Raw replay is about 2.3× faster than Parquet** for full sequential runs (~300k vs ~130k events/s), so `pnpm replay` reads raw by default.
+>
+> Deferred to Phase 11: connecting the live feeds to an `AsyncEventQueue`. The interfaces (`LiveClock`, queue, `runReplay`-style handler) are in place.
+
 - **Event clock:** gives the engine one ordered stream of events. It has two sources behind the same interface: the live recorder, or a file replay that merges sources in `recvTs` order (§4.7).
 - **Book reconstruction:** apply snapshots and deltas to get the book state for each token.
 - **Determinism:** a seeded random number generator for anything random, so replays are fully deterministic.

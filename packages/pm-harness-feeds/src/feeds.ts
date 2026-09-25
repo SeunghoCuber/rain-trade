@@ -16,12 +16,13 @@ export interface FeedHooks {
   onMirrorMismatch: (feed: string, n: number) => void;
 }
 
-function gapEvent(h: FeedHooks, feed: string, gapMs: number, reason: GapReason | "sequence_break", marketId?: string): void {
+function gapEvent(h: FeedHooks, feed: string, gapMs: number, reason: GapReason | "sequence_break", marketId?: string, recvTs?: bigint): void {
   h.emit({
     kind: "feed_gap",
     ...(marketId ? { marketId } : {}),
     exchangeTs: h.now(),
-    recvTs: h.recvTs(),
+    // a gap detected while handling a message shares that message's recvTs, so the stream stays in time order
+    recvTs: recvTs ?? h.recvTs(),
     payload: { feed, gapMs, reason },
   });
   h.onGap(feed, gapMs, reason);
@@ -84,7 +85,7 @@ export function createRtdsFeed(cfg: Config, h: FeedHooks): ResilientWs {
     for (const ev of evs) {
       if (ev.kind !== "res_price" || ev.payload.backfill) continue;
       if (lastTickTs !== null && ev.exchangeTs - lastTickTs > 1000) {
-        gapEvent(h, name, ev.exchangeTs - lastTickTs - 1000, "sequence_break");
+        gapEvent(h, name, ev.exchangeTs - lastTickTs - 1000, "sequence_break", undefined, recvTs);
       }
       lastTickTs = Math.max(lastTickTs ?? 0, ev.exchangeTs);
     }

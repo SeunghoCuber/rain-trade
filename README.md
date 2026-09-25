@@ -70,14 +70,25 @@ A market is **excluded** from headline stats if it's flagged `NOCLOB`, `LATE`, `
 
 On the Mac, run `pnpm data:compact` by hand. On a server, systemd timers run compaction hourly and health daily; see [docs/DEPLOY-AWS.md](docs/DEPLOY-AWS.md).
 
+## Replay (Phase 3)
+
+```sh
+pnpm replay                                   # everything recorded, with book verification + digest
+pnpm replay --from 2026-09-25T01:00Z --to 2026-09-25T02:00Z
+pnpm replay --market btc-updown-15m-1790298000
+pnpm replay --parquet                         # read compacted tables instead of raw (same digest)
+```
+
+It prints event counts, how well the rebuilt order books match the venue (every snapshot and every reported best bid/ask), and a sha256 digest. The same data always gives the same digest.
+
 ## Layout
 
 ```
 config/default.yaml       sweepable config, validated by zod (packages/pm-harness-core/src/config.ts)
 packages/
-  pm-harness-core/        event schemas, sim types, NDJSON codec, config, Chainlink TWAP
+  pm-harness-core/        event schemas, config, codec, TWAP, event clock, order book, market state, RNG
   pm-harness-feeds/       Gamma discovery, reconnecting WS, CLOB / Chainlink / spot normalizers
-  pm-harness-store/       Parquet compaction, DuckDB views, per-market health
+  pm-harness-store/       Parquet compaction, DuckDB views, per-market health, replay source
   pm-harness-sim/         fill simulator, fee + rebate model
   pm-harness-strategy/    fair value + market maker                   (Phases 4, 6)
   pm-harness-analytics/   markouts, stats, report                     (Phase 8)

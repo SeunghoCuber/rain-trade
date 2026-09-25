@@ -4,3 +4,7 @@ export * from "./codec.ts";
 export * from "./config.ts";
 export * from "./twap.ts";
 export * from "./clock.ts";
+export * from "./rng.ts";
+export * from "./event-clock.ts";
+export * from "./book.ts";
+export * from "./market-state.ts";

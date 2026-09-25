@@ -230,9 +230,15 @@ importers:
 
   apps/harness-replay:
     dependencies:
+      '@duckdb/node-api':
+        specifier: 1.5.5-r.5
+        version: 1.5.5-r.5
       '@rain/pm-harness-core':
         specifier: workspace:*
         version: link:../../packages/pm-harness-core
+      '@rain/pm-harness-store':
+        specifier: workspace:*
+        version: link:../../packages/pm-harness-store
 
   packages/pm-harness-analytics:
     dependencies:
