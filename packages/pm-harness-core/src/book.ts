@@ -59,9 +59,9 @@ export class Book {
     const upBid = token === "UP" ? reportedBid : reportedAsk === null ? null : fromKey(ONE - toKey(reportedAsk));
     const upAsk = token === "UP" ? reportedAsk : reportedBid === null ? null : fromKey(ONE - toKey(reportedBid));
     let removed = 0;
-    // a null reported side means that side is empty
-    const bidLimit = upBid === null ? -1 : toKey(upBid);
-    const askLimit = upAsk === null ? Infinity : toKey(upAsk);
+    // null = not reported (unknown): leave that side alone. The venue reports an empty side as 0 / 1.
+    const bidLimit = upBid === null ? Infinity : toKey(upBid);
+    const askLimit = upAsk === null ? -Infinity : toKey(upAsk);
     for (const k of [...this.bids.keys()]) {
       if (k > bidLimit) {
         this.bids.delete(k);

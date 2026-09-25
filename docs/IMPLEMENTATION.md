@@ -111,6 +111,11 @@ This document breaks the design in [PLAN.md](PLAN.md) into phases for building R
 
 ## Phase 5: Fill simulator (~6 days)
 
+> **Status: done (2026-09-25).** Code: `pm-harness-sim/src/fill-sim.ts`. Each fill rule (1–7) and each lifecycle transition has a test, including PLAN.md's sequence diagram (the toxic fill during cancel latency) reproduced exactly. How the design follows from the verified venue facts:
+> - **Orders are in UP terms** (the book is unified), and DOWN prints count against UP queues at 1−p.
+> - **Queue accounting:** a trade at our price reduces the queue directly, since the feed sends no level update for consumed liquidity. A later level decrease is counted as cancels **net of those prints**, so nothing is counted twice. The mode's `cancelsAheadFrac` decides how many cancels were ahead of us. Level increases join behind us. The queue ahead is capped at the displayed size (× the pad).
+> - **Book robustness:** a missing reported best is now treated as unknown, not as an empty side (the venue sends 0 / 1 for empty).
+
 This is the most important phase: paper-trading results are only as good as the fill model.
 
 - The order state machine from §4.5, with its ack and cancel latencies.
