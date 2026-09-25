@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import type { MarketRow } from "../api.ts";
-import { fmt } from "../theme/chart.ts";
+import { fmt, tzName } from "../theme/chart.ts";
 
 type Key = "window_start" | "pnl" | "adverse" | "fills" | "max_inv" | "uptime";
 const COLS: { key: Key; label: string; render: (r: MarketRow) => string }[] = [
-  { key: "window_start", label: "Window (UTC)", render: (r) => fmt.time(r.window_start) },
+  { key: "window_start", label: "Window", render: (r) => fmt.time(r.window_start) },
   { key: "pnl", label: "PnL", render: (r) => fmt.usd(r.pnl) },
   { key: "adverse", label: "Adverse", render: (r) => fmt.usd(r.adverse) },
   { key: "fills", label: "Fills", render: (r) => String(r.fills) },
@@ -31,7 +31,7 @@ export function MarketTable({ rows, selected, onSelect }: { rows: MarketRow[]; s
               {COLS.map((c) => (
                 <th key={c.key} aria-sort={sort.key === c.key ? (sort.desc ? "descending" : "ascending") : "none"}>
                   <button onClick={() => setSort({ key: c.key, desc: sort.key === c.key ? !sort.desc : true })}>
-                    {c.label} {sort.key === c.key ? (sort.desc ? "▼" : "▲") : ""}
+                    {c.key === "window_start" ? `${c.label} (${tzName()})` : c.label} {sort.key === c.key ? (sort.desc ? "▼" : "▲") : ""}
                   </button>
                 </th>
               ))}

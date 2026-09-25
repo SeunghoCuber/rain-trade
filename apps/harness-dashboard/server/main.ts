@@ -27,8 +27,10 @@ const safeId = (s: string) => /^[\w.-]+$/.test(s);
 async function analysisFor(runId: string): Promise<unknown> {
   const file = join(runDir(dataDir, runId), "analysis.json");
   const markets = join(runDir(dataDir, runId), "markets.parquet");
-  if (!existsSync(file) || statSync(file).mtimeMs < statSync(markets).mtimeMs) {
-    const a = analyzeRun(runId, await loadRun(conn, dataDir, runId));
+  const tz = cfg.dashboard.timeZone;
+  const cached = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as { timeZone?: string }) : null;
+  if (!cached || cached.timeZone !== tz || statSync(file).mtimeMs < statSync(markets).mtimeMs) {
+    const a = analyzeRun(runId, await loadRun(conn, dataDir, runId), { timeZone: tz });
     writeFileSync(file, JSON.stringify(a));
   }
   return JSON.parse(readFileSync(file, "utf8"));
@@ -83,6 +85,7 @@ async function handle(url: URL, res: ServerResponse): Promise<void> {
       return json(res, 200, { meta, fv, quotes, fills });
     }
   }
+  if (parts[0] === "meta") return json(res, 200, { timeZone: cfg.dashboard.timeZone });
   if (parts[0] === "live" && parts[1] === "status") {
     const f = join(cfg.live.outDir, "status.json");
     if (!existsSync(f)) return json(res, 200, null);

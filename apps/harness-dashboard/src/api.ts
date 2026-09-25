@@ -51,6 +51,8 @@ export interface ModeAnalysis {
 export interface RunAnalysis {
   runId: string;
   createdAt: string;
+  /** absent in analyses cached before display time zones: their hours are UTC */
+  timeZone?: string;
   modes: ModeAnalysis[];
   spotVsMarkout: { mode: Mode; spotMove1sBp: number; markout5Cents: number; side: "BUY" | "SELL" }[];
   heatMinuteFv: { mode: Mode; minute: number; fvBucket: number; fills: number; edgeCents: number | null }[];
@@ -133,4 +135,5 @@ export const api = {
   calibration: () => get<Calibration>("/api/calibration"),
   latestSweep: () => get<Sweep | null>("/api/sweeps/latest"),
   liveStatus: () => get<LiveStatus | null>("/api/live/status"),
+  meta: () => get<{ timeZone: string }>("/api/meta"),
 };

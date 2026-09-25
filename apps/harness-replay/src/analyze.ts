@@ -21,7 +21,7 @@ if (!args.includes("--no-health")) {
   for (const d of days) await writeHealth(conn, cfg.recorder.dataDir, d, (await computeDayHealth(cfg, d)).markets);
 }
 const input = await loadRun(conn, cfg.recorder.dataDir, runId);
-const a = analyzeRun(runId, input);
+const a = analyzeRun(runId, input, { timeZone: cfg.dashboard.timeZone });
 writeFileSync(join(runDir(cfg.recorder.dataDir, runId), "analysis.json"), JSON.stringify(a));
 conn.closeSync();
 inst.closeSync();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeMode, analyzeRun, fvLookup, type FillIn, type MarketIn } from "./analyze.ts";
+import { analyzeMode, analyzeRun, fvLookup, hourIn, type FillIn, type MarketIn } from "./analyze.ts";
 import { blockBootstrap, drawdown, mean, median, quantile, sd, skew, tStat } from "./stats.ts";
 
 describe("stats", () => {
@@ -127,5 +127,14 @@ describe("fvLookup", () => {
     expect(fvLookup(s, 19)).toBe(0.1);
     expect(fvLookup(s, 20)).toBe(0.2);
     expect(fvLookup(s, 99)).toBe(0.2);
+  });
+});
+
+describe("hourIn", () => {
+  it("converts to the display zone, following daylight saving", () => {
+    expect(hourIn(Date.parse("2026-09-25T21:00:00Z"), "America/Los_Angeles")).toBe(14); // PDT, UTC−7
+    expect(hourIn(Date.parse("2026-12-25T21:00:00Z"), "America/Los_Angeles")).toBe(13); // PST, UTC−8
+    expect(hourIn(Date.parse("2026-09-25T07:00:00Z"), "America/Los_Angeles")).toBe(0);
+    expect(hourIn(Date.parse("2026-09-25T21:00:00Z"), "UTC")).toBe(21);
   });
 });

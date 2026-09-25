@@ -119,6 +119,10 @@ export const Config = z.object({
     /** in-sample share of the data (by day; by market while there are fewer than 5 days) */
     inSampleFrac: z.number().min(0.1).max(0.9),
   }),
+  dashboard: z.object({
+    /** IANA zone for every time shown in the dashboard (daylight saving handled automatically) */
+    timeZone: z.string(),
+  }),
   /** live paper trading (Phase 11) */
   live: z.object({
     outDir: z.string(),

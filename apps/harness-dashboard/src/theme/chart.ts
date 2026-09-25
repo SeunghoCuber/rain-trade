@@ -29,13 +29,31 @@ export const tooltipProps = {
   cursor: { stroke: C.axis, strokeWidth: 1 },
 } as const;
 
+// Display time zone: set once from /api/meta (config dashboard.timeZone), Pacific by default.
+let timeZone = "America/Los_Angeles";
+const parts = (ms: number, o: Intl.DateTimeFormatOptions) =>
+  Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", ...o }).formatToParts(ms).map((p) => [p.type, p.value]));
+export function setTimeZone(tz: string): void {
+  timeZone = tz;
+}
+/** Zone abbreviation at `ms` (PDT / PST …). */
+export function tzName(ms: number = Date.now()): string {
+  return parts(ms, { timeZoneName: "short" }).timeZoneName ?? timeZone;
+}
+
 export const fmt = {
   usd: (x: number | null | undefined, d = 2) => (x == null || !Number.isFinite(x) ? "—" : `${x < 0 ? "−" : ""}$${Math.abs(x).toFixed(d)}`),
   num: (x: number | null | undefined, d = 2) => (x == null || !Number.isFinite(x) ? "—" : x.toFixed(d).replace("-", "−")),
   cents: (x: number | null | undefined, d = 2) => (x == null || !Number.isFinite(x) ? "—" : `${x.toFixed(d).replace("-", "−")}¢`),
   pct: (x: number | null | undefined, d = 0) => (x == null || !Number.isFinite(x) ? "—" : `${x.toFixed(d)}%`),
-  time: (ms: number) => new Date(ms).toISOString().slice(5, 16).replace("T", " "),
-  clock: (ms: number) => new Date(ms).toISOString().slice(11, 19),
+  time: (ms: number) => {
+    const p = parts(ms, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    return `${p.month}-${p.day} ${p.hour}:${p.minute}`;
+  },
+  clock: (ms: number) => {
+    const p = parts(ms, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    return `${p.hour}:${p.minute}:${p.second}`;
+  },
 };
 
 /** Diverging fill: blue (positive) ↔ gray ↔ red (negative), by |v| / max. */

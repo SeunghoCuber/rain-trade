@@ -284,16 +284,24 @@ export function analyzeMode(mode: Mode, x: AnalyzeInput): ModeAnalysis {
 export interface RunAnalysis {
   runId: string;
   createdAt: string;
+  /** zone of heatVolHour.hour */
+  timeZone: string;
   modes: ModeAnalysis[];
   /** V9: per fill, spot move in the prior second vs 5 s markout (¢), base mode, thinned */
   spotVsMarkout: { mode: Mode; spotMove1sBp: number; markout5Cents: number; side: "BUY" | "SELL" }[];
   /** V5: minute-in-window × FV bucket → edge ¢/share per mode */
   heatMinuteFv: { mode: Mode; minute: number; fvBucket: number; fills: number; edgeCents: number }[];
-  /** V6: vol tercile × hour → PnL per market per mode */
+  /** V6: vol tercile × hour of day (in `timeZone`) → PnL per market per mode */
   heatVolHour: { mode: Mode; volTercile: string; hour: number; markets: number; pnlPerMarket: number }[];
 }
 
-export function analyzeRun(runId: string, x: AnalyzeInput): RunAnalysis {
+/** Hour of day (0–23) of `ms` in an IANA time zone. */
+export function hourIn(ms: number, timeZone: string): number {
+  return Number(new Intl.DateTimeFormat("en-US", { timeZone, hour: "2-digit", hourCycle: "h23" }).format(ms));
+}
+
+export function analyzeRun(runId: string, x: AnalyzeInput, opts: { timeZone?: string } = {}): RunAnalysis {
+  const timeZone = opts.timeZone ?? "UTC";
   const modes = (["optimistic", "base", "pessimistic"] as const).map((m) => analyzeMode(m, x));
   const includedByMode = new Map(modes.map((a) => [a.mode, new Set(x.markets.filter((m) => m.mode === a.mode && !m.excluded).map((m) => m.marketId))]));
   const spotVsMarkout: RunAnalysis["spotVsMarkout"] = [];
@@ -323,7 +331,7 @@ export function analyzeRun(runId: string, x: AnalyzeInput): RunAnalysis {
     const cells = new Map<string, number[]>();
     for (const m of ms) {
       const vt = m.realizedVol <= t1 ? "low" : m.realizedVol <= t2 ? "med" : "high";
-      const k = `${vt}|${new Date(m.windowStart).getUTCHours()}`;
+      const k = `${vt}|${hourIn(m.windowStart, timeZone)}`;
       (cells.get(k) ?? cells.set(k, []).get(k)!).push(m.pnlTrading + m.rebateEst - m.fees);
     }
     for (const [k, v] of cells) {
@@ -331,5 +339,5 @@ export function analyzeRun(runId: string, x: AnalyzeInput): RunAnalysis {
       heatVolHour.push({ mode, volTercile: vt!, hour: Number(hour), markets: v.length, pnlPerMarket: mean(v) });
     }
   }
-  return { runId, createdAt: new Date().toISOString(), modes, spotVsMarkout, heatMinuteFv, heatVolHour };
+  return { runId, createdAt: new Date().toISOString(), timeZone, modes, spotVsMarkout, heatMinuteFv, heatVolHour };
 }

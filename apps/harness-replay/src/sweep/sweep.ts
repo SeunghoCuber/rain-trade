@@ -139,7 +139,7 @@ if (oosIds.size) {
     replay: { fromMs: boundaryMs - 60 * 60_000, toMs },
     keepMarket: (ws) => ws >= boundaryMs,
   });
-  writeFileSync(join(runDir(dataDir, oosRunId), "analysis.json"), JSON.stringify(analyzeRun(oosRunId, await loadRun(conn, dataDir, oosRunId))));
+  writeFileSync(join(runDir(dataDir, oosRunId), "analysis.json"), JSON.stringify(analyzeRun(oosRunId, await loadRun(conn, dataDir, oosRunId), { timeZone: cfg.dashboard.timeZone })));
 }
 conn.closeSync();
 inst.closeSync();

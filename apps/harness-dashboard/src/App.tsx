@@ -16,7 +16,7 @@ import {
   SweepHeatmap,
 } from "./components/Charts.tsx";
 import { MarketTable } from "./components/MarketTable.tsx";
-import { fmt } from "./theme/chart.ts";
+import { fmt, setTimeZone, tzName } from "./theme/chart.ts";
 
 function Kpi({ label, value, sub, dir }: { label: string; value: string; sub?: string; dir?: number }) {
   const cls = dir === undefined || dir === 0 ? "" : dir > 0 ? "up" : "down";
@@ -53,6 +53,10 @@ export function App() {
   }, []);
   const [error, setError] = useState<string | null>(null);
 
+  const [tzReady, setTzReady] = useState(false);
+  useEffect(() => {
+    api.meta().then((m) => setTimeZone(m.timeZone), () => {}).finally(() => setTzReady(true));
+  }, []);
   useEffect(() => {
     api.runs().then((r) => {
       setRuns(r);
@@ -76,7 +80,7 @@ export function App() {
   }, [run, selected, mode]);
 
   const m = a?.modes.find((x) => x.mode === mode);
-  const span = m?.cumulative.length ? `${fmt.time(m.cumulative[0]!.windowStart)} → ${fmt.time(m.cumulative[m.cumulative.length - 1]!.windowStart)} UTC` : "";
+  const span = m?.cumulative.length ? `${fmt.time(m.cumulative[0]!.windowStart)} → ${fmt.time(m.cumulative[m.cumulative.length - 1]!.windowStart)} ${tzName(m.cumulative[m.cumulative.length - 1]!.windowStart)}` : "";
 
   return (
     <>
@@ -115,7 +119,7 @@ export function App() {
       <main>
         {error && <div className="error">API error: {error}. Is `pnpm dashboard:api` running?</div>}
         {!runs.length && !error && <div className="empty">No backtest runs yet. Run `pnpm backtest --run-id mm-v1`.</div>}
-        {m && a && (
+        {m && a && tzReady && (
           <>
             <div className="run-meta">
               {span} · {m.markets} usable of {m.marketsTotal} markets ({m.excludedMarkets} excluded) · {m.fills.toLocaleString()} fills · CI from {m.bootstrap.blockBy} blocks

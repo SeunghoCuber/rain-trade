@@ -17,7 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { MODES, type Calibration, type MarketDetail, type Mode, type ModeAnalysis, type RunAnalysis, type Sweep } from "../api.ts";
-import { axisProps, C, diverging, fmt, gridProps, MODE_COLOR, tooltipProps } from "../theme/chart.ts";
+import { axisProps, C, diverging, fmt, gridProps, MODE_COLOR, tooltipProps, tzName } from "../theme/chart.ts";
 import { Empty, Panel } from "./Panel.tsx";
 
 const H = 260;
@@ -220,7 +220,7 @@ export function HeatMinuteFv({ a, mode }: { a: RunAnalysis; mode: Mode }) {
   );
 }
 
-/** V6: vol tercile × hour UTC → PnL per market. */
+/** V6: vol tercile × hour of day (display time zone) → PnL per market. */
 export function HeatVolHour({ a, mode }: { a: RunAnalysis; mode: Mode }) {
   const cells = a.heatVolHour.filter((c) => c.mode === mode);
   const get = (r: string, c: string) => {
@@ -229,8 +229,8 @@ export function HeatVolHour({ a, mode }: { a: RunAnalysis; mode: Mode }) {
   };
   const cols = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
   return (
-    <Panel id="V6" title="Vol × hour heatmap" question="Which regimes and sessions to avoid?" table={{ columns: ["vol tercile", "hour UTC", "markets", "PnL/market $"], rows: cells.map((c) => [c.volTercile, c.hour, c.markets, fmt.num(c.pnlPerMarket, 2)]) }}>
-      {cells.length ? <Heatmap rows={["high", "med", "low"]} cols={cols} cell={get} rowLabel="vol" colLabel="hour UTC" unit={(v) => fmt.usd(v, 0)} /> : <Empty>No markets.</Empty>}
+    <Panel id="V6" title="Vol × hour heatmap" question="Which regimes and sessions to avoid?" table={{ columns: ["vol tercile", `hour (${(a.timeZone ?? "UTC") === "UTC" ? "UTC" : tzName()})`, "markets", "PnL/market $"], rows: cells.map((c) => [c.volTercile, c.hour, c.markets, fmt.num(c.pnlPerMarket, 2)]) }}>
+      {cells.length ? <Heatmap rows={["high", "med", "low"]} cols={cols} cell={get} rowLabel="vol" colLabel={`hour ${(a.timeZone ?? "UTC") === "UTC" ? "UTC" : tzName()}`} unit={(v) => fmt.usd(v, 0)} /> : <Empty>No markets.</Empty>}
     </Panel>
   );
 }

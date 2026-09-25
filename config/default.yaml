@@ -82,6 +82,9 @@ report:
   brierTolerance: 0.01
   inSampleFrac: 0.7
 
+dashboard:
+  timeZone: America/Los_Angeles   # PT: shows PDT in summer, PST in winter
+
 live:
   outDir: data/live
   modes: [optimistic, base, pessimistic]
