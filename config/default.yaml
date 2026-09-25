@@ -62,6 +62,8 @@ strategy:
   requoteThreshold: 0.003
   pullBeforeCloseSec: 60
   pullOnSpotJump: { bp: 8, windowMs: 500 }
+  jumpCooldownMs: 2000
+  volHorizonSec: 5
 
 sim:
   seed: 42

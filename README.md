@@ -81,6 +81,16 @@ pnpm replay --parquet                         # read compacted tables instead of
 
 It prints event counts, how well the rebuilt order books match the venue (every snapshot and every reported best bid/ask), and a sha256 digest. The same data always gives the same digest.
 
+## Backtest (Phase 6)
+
+```sh
+pnpm fv:calibrate                               # fair value vs Polymarket mid: Brier, reliability, lead/lag
+pnpm backtest --run-id mm-v1                    # all recorded data, all three fill modes
+pnpm backtest --from 2026-09-25T00:00Z --to 2026-09-26T00:00Z --strategy none
+```
+
+Outputs go to `data/runs/<runId>/`: `fills.parquet`, `markets.parquet` (per market × mode: PnL decomposition, rebate, uptime), `fv.parquet` (FV every 250 ms), `quotes.parquet` and `run.json` (config + results digest).
+
 ## Layout
 
 ```

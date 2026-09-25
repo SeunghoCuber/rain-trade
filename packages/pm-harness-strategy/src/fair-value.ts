@@ -219,12 +219,12 @@ export class FairValueEngine {
     return m.s0;
   }
 
-  /** P(UP) for `marketId` at `nowMs`, or null before S0 is known / without a price. */
-  fairValue(marketId: string, nowMs: number): FairValue | null {
+  /** P(UP) for `marketId` at `nowMs`, or null before S0 is known / without a price. `sOverride` prices a hypothetical spot. */
+  fairValue(marketId: string, nowMs: number, sOverride?: number): FairValue | null {
     const m = this.markets.get(marketId);
     if (!m) return null;
     const s0 = this.s0(marketId, nowMs);
-    const s = this.currentPrice(nowMs);
+    const s = sOverride ?? this.currentPrice(nowMs);
     if (s0 === null || s === null) return null;
     return priceClosingTwap({
       nowMs,

@@ -131,6 +131,14 @@ This is the most important phase: paper-trading results are only as good as the 
 
 ## Phase 6: Strategy, ledger and settlement (~4 days)
 
+> **Status: done (2026-09-25).** Code: `pm-harness-strategy` (`MarketMaker`, `BacktestRunner`), `pm-harness-sim/ledger.ts`, `pnpm backtest`, with outputs in `data/runs/<runId>/{fills,markets,fv,quotes}.parquet`.
+> - **Exit check:** a replay of everything recorded (11.4M events, 78 s) produced a MarketResult for all 35 resolved markets. The §7.1 decomposition identity holds to 5e-13.
+> - **Design choices:**
+>   - Settlement uses the **official** outcome (the Phase 2 finding).
+>   - The vol spread term uses |FV(S·e^{σ√h}) − FV(S)| with h = 5 s. That is PLAN's σ√τ converted into probability units, so it widens where FV is most sensitive.
+>   - An UP ask with no UP inventory is a DOWN bid at 1−p, and pairs are merged for $1.
+>   - Rebate ≈ 20% of our maker fee-equivalent.
+
 - **Market maker (§4.4):** half-spread plus the volatility term, inventory skew, the inventory cap, cancelling everything before close, and cancelling when spot jumps.
 - **Ledger (§4.6):** cash, Up shares and Down shares per market, an optional merge, a pluggable fee function, and a rebate estimate kept separate from trading PnL.
 - **Settlement:** a cross-check against the official resolution that logs `SettlementMismatch` when they differ.

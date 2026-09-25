@@ -95,6 +95,10 @@ export const Config = z.object({
     requoteThreshold: z.number().nonnegative(),
     pullBeforeCloseSec: z.number().nonnegative(),
     pullOnSpotJump: z.object({ bp: z.number().positive(), windowMs: z.number().positive() }),
+    /** after a spot jump, stay out this long */
+    jumpCooldownMs: z.number().nonnegative(),
+    /** vol term = |FV(S·e^{σ√h}) − FV(S)| over this horizon h, times volSpreadMult (PLAN's σ√τ in probability units) */
+    volHorizonSec: z.number().positive(),
   }),
   sim: z.object({
     seed: z.number().int(),

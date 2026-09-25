@@ -284,6 +284,9 @@ importers:
       '@rain/pm-harness-core':
         specifier: workspace:*
         version: link:../pm-harness-core
+      '@rain/pm-harness-sim':
+        specifier: workspace:*
+        version: link:../pm-harness-sim
 
 packages:
 
