@@ -1,0 +1,14 @@
+{
+  "name": "harness-recorder",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.ts",
+    "stats": "node src/stats.ts"
+  },
+  "dependencies": {
+    "@rain/pm-harness-core": "workspace:*",
+    "@rain/pm-harness-feeds": "workspace:*"
+  }
+}

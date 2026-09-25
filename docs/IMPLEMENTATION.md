@@ -30,6 +30,12 @@ This document breaks the design in [PLAN.md](PLAN.md) into phases for building R
 
 ## Phase 1: Market discovery and recorder (~5 days), then start recording
 
+> **Status: built (2026-09-24); the 24-hour exit check is still pending.** The code is in `apps/harness-recorder` and `packages/pm-harness-feeds`. Run it with `pnpm recorder` or `ops/install-recorder.sh`, and check it with `pnpm recorder:stats <day>`. Additions beyond the original plan:
+> - **Event kinds:** `tick_size_change` (the venue shrinks the tick near 0.99/0.01) and `venue_raw` (unknown venue messages kept verbatim).
+> - **Chainlink backfill:** ticks replayed by RTDS on resubscribe are stored with `backfill: true`.
+> - **Coverage from the data:** stats measure holes from the recorded data itself, so restarts and sleep are caught even without `feed_gap` events.
+> - **Settlement cross-check in stats:** our Chainlink TWAP is compared with Gamma's `priceToBeat`/`finalPrice` for every market (the `TWAPΔ` flag).
+
 - **Discovery:** poll every 30 s, register the next market at least 60 s before it opens, and emit `market_open` / `market_close` events.
 - **Feed adapters:** the Polymarket market WebSocket (both Up and Down tokens), the spot WebSocket (Binance and/or Coinbase), and the resolution-source price feed.
 - **Normalization:** convert every event to `MarketEvent` with two timestamps: `exchangeTs` from the source and `recvTs` from the local monotonic clock in nanoseconds.

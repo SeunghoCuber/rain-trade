@@ -3,3 +3,4 @@ export * from "./sim-types.ts";
 export * from "./codec.ts";
 export * from "./config.ts";
 export * from "./twap.ts";
+export * from "./clock.ts";

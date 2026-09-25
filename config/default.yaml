@@ -34,8 +34,14 @@ recorder:
   dataDir: data
   discoveryPollSec: 30
   preRegisterSec: 60
+  postCloseGraceSec: 5
+  resolutionGiveUpSec: 7200   # Gamma publishes finalPrice ~20 min after close
   maxGapMs: 2000
+  silenceMs: { clob: 30000, rtds: 5000, binance: 5000, coinbase: 5000 }
+  dropMirrored: true
   spotSources: [binance, coinbase]
+  statusIntervalSec: 10
+  alertWebhookUrl: null
 
 fairValue:
   volHalfLivesSec: [60, 600]

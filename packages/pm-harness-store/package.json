@@ -1,0 +1,13 @@
+{
+  "name": "@rain/pm-harness-store",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "1.5.5-r.5",
+    "@rain/pm-harness-core": "workspace:*"
+  }
+}

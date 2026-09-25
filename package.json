@@ -10,13 +10,17 @@
     "typecheck": "tsc -p tsconfig.json && pnpm --filter harness-dashboard typecheck",
     "test": "vitest run",
     "lint": "eslint .",
-    "check": "pnpm typecheck && pnpm lint && pnpm test"
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "recorder": "ops/run-recorder.sh",
+    "recorder:stats": "node apps/harness-recorder/src/stats.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
+    "@types/ws": "^8.18.1",
     "eslint": "^10.11.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "ws": "^8.21.3"
   }
 }

@@ -77,8 +77,10 @@ export const ResPricePayload = z.object({
   source: z.literal("chainlink"),
   symbol: z.string(),
   price: z.number().positive(),
-  /** `full_accuracy_value` (price * 1e18); settlement TWAP is computed from this, not `price` */
-  scaled: z.string().regex(/^\d+$/),
+  /** `full_accuracy_value` (price * 1e18); settlement TWAP uses this when present. Absent on backfill ticks. */
+  scaled: z.string().regex(/^\d+$/).optional(),
+  /** true for ticks from the ~59 s history RTDS replays on every (re)subscribe */
+  backfill: z.boolean().optional(),
 });
 
 export const FeeSchedule = z.object({
@@ -108,6 +110,19 @@ export const ResolutionPayload = z.object({
   finalPrice: z.number().positive(),
 });
 
+/** Venue changed the minimum tick (seen near 0.99/0.01, e.g. 0.01 → 0.001). */
+export const TickSizeChangePayload = z.object({
+  oldTickSize: z.number().positive(),
+  newTickSize: z.number().positive(),
+});
+
+/** A venue message the recorder does not understand yet, kept verbatim so nothing is lost. */
+export const VenueRawPayload = z.object({
+  feed: z.string(),
+  eventType: z.string(),
+  data: z.string(),
+});
+
 export const FeedGapPayload = z.object({
   feed: z.string(),
   gapMs: z.number().nonnegative(),
@@ -133,6 +148,8 @@ export const MarketEvent = z.discriminatedUnion("kind", [
   z.object({ ...base, kind: z.literal("market_close"), payload: MarketClosePayload }),
   z.object({ ...base, kind: z.literal("resolution"), payload: ResolutionPayload }),
   z.object({ ...base, kind: z.literal("feed_gap"), payload: FeedGapPayload }),
+  z.object({ ...base, kind: z.literal("tick_size_change"), payload: TickSizeChangePayload }),
+  z.object({ ...base, kind: z.literal("venue_raw"), payload: VenueRawPayload }),
 ]);
 export type MarketEvent = z.infer<typeof MarketEvent>;
 export type MarketEventKind = MarketEvent["kind"];

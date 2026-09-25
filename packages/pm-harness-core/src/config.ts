@@ -48,8 +48,25 @@ export const Config = z.object({
     dataDir: z.string(),
     discoveryPollSec: z.number().positive(),
     preRegisterSec: z.number().nonnegative(),
+    /** keep the CLOB connection open this long after windowEnd */
+    postCloseGraceSec: z.number().nonnegative(),
+    /** stop polling Gamma for a resolution after this long past windowEnd */
+    resolutionGiveUpSec: z.number().positive(),
+    /** a market with any feed gap longer than this is excluded from headline stats */
     maxGapMs: z.number().positive(),
+    /** reconnect a feed after this much silence (includes PONGs / heartbeats) */
+    silenceMs: z.object({
+      clob: z.number().positive(),
+      rtds: z.number().positive(),
+      binance: z.number().positive(),
+      coinbase: z.number().positive(),
+    }),
+    /** store only the UP side of mirrored UP/DOWN book updates (DOWN = mirror); ~10x smaller */
+    dropMirrored: z.boolean(),
     spotSources: z.array(z.enum(["binance", "coinbase"])).min(1),
+    statusIntervalSec: z.number().positive(),
+    /** POST {text} here on feed silence/recovery (Slack/ntfy/etc.); null disables */
+    alertWebhookUrl: z.url().nullable(),
   }),
   fairValue: z.object({
     volHalfLivesSec: z.array(z.number().positive()).min(1),
