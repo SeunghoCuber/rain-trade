@@ -1,8 +1,8 @@
 [Unit]
-Description=Daily health report, after the last markets of the day have resolved (~20 min after close)
+Description=Hourly health report, so settled markets are checked (and counted) within about an hour
 
 [Timer]
-OnCalendar=*-*-* 01:15:00 UTC
+OnCalendar=*-*-* *:20:00 UTC
 Persistent=true
 
 [Install]

@@ -24,12 +24,25 @@ const json = (res: ServerResponse, code: number, body: unknown) => {
 };
 const safeId = (s: string) => /^[\w.-]+$/.test(s);
 
+/** Newest market-health file: exclusions change when it is refreshed. */
+function healthMtime(): number {
+  const root = join(dataDir, "health");
+  if (!existsSync(root)) return 0;
+  let t = 0;
+  for (const d of readdirSync(root)) {
+    const f = join(root, d, "market_health.parquet");
+    if (existsSync(f)) t = Math.max(t, statSync(f).mtimeMs);
+  }
+  return t;
+}
+
 async function analysisFor(runId: string): Promise<unknown> {
   const file = join(runDir(dataDir, runId), "analysis.json");
   const markets = join(runDir(dataDir, runId), "markets.parquet");
   const tz = cfg.dashboard.timeZone;
   const cached = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as { timeZone?: string }) : null;
-  if (!cached || cached.timeZone !== tz || statSync(file).mtimeMs < statSync(markets).mtimeMs) {
+  const age = cached ? statSync(file).mtimeMs : 0;
+  if (!cached || cached.timeZone !== tz || age < statSync(markets).mtimeMs || age < healthMtime()) {
     const a = analyzeRun(runId, await loadRun(conn, dataDir, runId), { timeZone: tz });
     writeFileSync(file, JSON.stringify(a));
   }

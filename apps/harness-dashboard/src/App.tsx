@@ -80,6 +80,7 @@ export function App() {
   }, [run, selected, mode]);
 
   const m = a?.modes.find((x) => x.mode === mode);
+  const awaitingHealth = markets.filter((r) => r.flags === "NOHEALTH").length;
   const span = m?.cumulative.length ? `${fmt.time(m.cumulative[0]!.windowStart)} → ${fmt.time(m.cumulative[m.cumulative.length - 1]!.windowStart)} ${tzName(m.cumulative[m.cumulative.length - 1]!.windowStart)}` : "";
 
   return (
@@ -122,7 +123,8 @@ export function App() {
         {m && a && tzReady && (
           <>
             <div className="run-meta">
-              {span} · {m.markets} usable of {m.marketsTotal} markets ({m.excludedMarkets} excluded) · {m.fills.toLocaleString()} fills · CI from {m.bootstrap.blockBy} blocks
+              Usable markets {span} · {m.markets} usable of {m.marketsTotal} settled ({m.excludedMarkets} excluded
+              {awaitingHealth > 0 ? `, ${awaitingHealth} of them only because their health check hasn't run yet: hourly, or pnpm data:health` : ""}) · {m.fills.toLocaleString()} fills · CI from {m.bootstrap.blockBy} blocks
               {m.markets < 2000 && <span className="warn-note"> · below the 2,000-market minimum sample: not a go/no-go result</span>}
             </div>
             <div className="kpis">

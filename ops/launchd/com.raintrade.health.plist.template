@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Rendered by ops/install-recorder.sh. Health report for yesterday + today (UTC), every 6 hours
-     (launchd uses local time; 6-hourly guarantees one run after the UTC day's last resolutions). -->
+<!-- Rendered by ops/install-recorder.sh. Health report for yesterday + today (UTC), hourly at :20,
+     so settled markets are checked (and counted by the dashboard) within about an hour. -->
 <plist version="1.0">
 <dict>
   <key>Label</key>
@@ -15,12 +15,10 @@
   <key>WorkingDirectory</key>
   <string>__REPO__</string>
   <key>StartCalendarInterval</key>
-  <array>
-    <dict><key>Hour</key><integer>1</integer><key>Minute</key><integer>20</integer></dict>
-    <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>20</integer></dict>
-    <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>20</integer></dict>
-    <dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>20</integer></dict>
-  </array>
+  <dict>
+    <key>Minute</key>
+    <integer>20</integer>
+  </dict>
   <key>StandardOutPath</key>
   <string>__REPO__/data/health.log</string>
   <key>StandardErrorPath</key>
