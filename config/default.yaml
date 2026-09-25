@@ -56,13 +56,16 @@ fairValue:
 strategy:
   halfSpread: 0.01
   volSpreadMult: 0.5
-  skewPerShare: 0.0001
-  maxInventory: 500
-  quoteSize: 50
+  skewPerShare: 0.0002         # 2¢ at the 100-share cap
+  maxInventory: 100            # was 500: held inventory is a coin flip at settlement
+  quoteSize: 20                # was 50: often > 20% of its level (sanity check 6)
   requoteThreshold: 0.003
   pullBeforeCloseSec: 60
   pullOnSpotJump: { bp: 8, windowMs: 500 }
   jumpCooldownMs: 2000
+  inventoryDecaySec: 300       # cap → 0 over the last 5 min before the pull: arrive flat
+  unwindEdge: 0                # reducing quote at FV while over the shrinking cap
+  fvBand: [0.05, 0.95]         # outside: only reduce, never add
   volHorizonSec: 5
 
 sim:

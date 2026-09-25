@@ -97,6 +97,16 @@ export const Config = z.object({
     pullOnSpotJump: z.object({ bp: z.number().positive(), windowMs: z.number().positive() }),
     /** after a spot jump, stay out this long */
     jumpCooldownMs: z.number().nonnegative(),
+    /**
+     * the inventory cap shrinks linearly to 0 over this many seconds before the pull; above the
+     * shrinking cap only the reducing side is quoted, at FV + unwindEdge, to arrive flat at
+     * settlement (0 = the cap stays at maxInventory until the pull)
+     */
+    inventoryDecaySec: z.number().nonnegative(),
+    /** reducing quote while over the cap: FV − unwindEdge for a bid, FV + unwindEdge for an ask */
+    unwindEdge: z.number().nonnegative(),
+    /** outside [lo, hi] fair value, never add to a position (only reduce): the outcome is nearly decided */
+    fvBand: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]),
     /** vol term = |FV(S·e^{σ√h}) − FV(S)| over this horizon h, times volSpreadMult (PLAN's σ√τ in probability units) */
     volHorizonSec: z.number().positive(),
   }),

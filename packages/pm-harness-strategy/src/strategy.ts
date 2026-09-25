@@ -46,7 +46,13 @@ export function sanitize(bid: number | null, ask: number | null, ctx: QuoteConte
   return { bid: b === null ? null : round6(b), ask: a === null ? null : round6(a) };
 }
 
-/** The market maker of PLAN.md §4.4. */
+/**
+ * The market maker of PLAN.md §4.4, plus inventory control so it earns the spread instead of
+ * carrying a position into settlement (where held shares are a coin flip):
+ *  - the cap on |inventory| shrinks to 0 over the last `inventoryDecaySec` before the pull;
+ *  - above the (shrinking) cap only the reducing side is quoted, at FV ± unwindEdge;
+ *  - outside `fvBand` nothing is added, only reduced.
+ */
 export class MarketMaker implements Strategy {
   readonly name = "mm";
   private readonly s: Config["strategy"];
@@ -55,17 +61,35 @@ export class MarketMaker implements Strategy {
     this.s = cfg.strategy;
   }
 
+  /** Inventory cap at `nowMs`: maxInventory, shrinking linearly to 0 at the pull. */
+  cap(ctx: QuoteContext): number {
+    const s = this.s;
+    if (s.inventoryDecaySec <= 0) return s.maxInventory;
+    const toPullSec = (ctx.windowEnd - s.pullBeforeCloseSec * 1000 - ctx.nowMs) / 1000;
+    return s.maxInventory * Math.min(1, Math.max(0, toPullSec / s.inventoryDecaySec));
+  }
+
   quote(ctx: QuoteContext): DesiredQuotes | null {
     const s = this.s;
     if (ctx.spotJump) return null;
     if (ctx.nowMs < ctx.windowStart || ctx.nowMs > ctx.windowEnd - s.pullBeforeCloseSec * 1000) return null;
+    const inv = ctx.inventory;
+    const cap = this.cap(ctx);
+    const fv = ctx.fv.p;
     const hs = s.halfSpread + s.volSpreadMult * ctx.fvVol;
-    const skew = s.skewPerShare * ctx.inventory; // long UP → quotes shift down
-    let bid: number | null = ctx.fv.p - hs - skew;
-    let ask: number | null = ctx.fv.p + hs - skew;
-    if (ctx.inventory >= s.maxInventory) bid = null; // don't add risk beyond the cap
-    if (ctx.inventory <= -s.maxInventory) ask = null;
-    return { ...sanitize(bid, ask, ctx), size: s.quoteSize };
+    const skew = s.skewPerShare * inv; // long UP → quotes shift down
+    let bid: number | null = fv - hs - skew;
+    let ask: number | null = fv + hs - skew;
+    const extreme = fv < s.fvBand[0] || fv > s.fvBand[1];
+    // never add beyond the (shrinking) cap, and never add at all when the outcome is nearly decided
+    if (inv >= cap || (extreme && inv >= 0)) bid = null;
+    if (inv <= -cap || (extreme && inv <= 0)) ask = null;
+    // over the cap: work the reducing side at FV to get out (flat is the goal, not the spread)
+    if (inv > cap && ask !== null) ask = Math.min(ask, fv + s.unwindEdge);
+    if (inv < -cap && bid !== null) bid = Math.max(bid, fv - s.unwindEdge);
+    // reducing quotes never need more than the position itself
+    const size = inv > cap || inv < -cap ? Math.max(1, Math.min(s.quoteSize, Math.abs(inv))) : s.quoteSize;
+    return { ...sanitize(bid, ask, ctx), size };
   }
 }
 
