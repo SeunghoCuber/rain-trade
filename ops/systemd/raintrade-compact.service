@@ -1,0 +1,11 @@
+[Unit]
+Description=RainTrade: compact closed raw hours to Parquet
+
+[Service]
+Type=oneshot
+User=__USER__
+WorkingDirectory=__REPO__
+ExecStart=__NODE__ packages/pm-harness-store/src/cli.ts compact
+StandardOutput=append:__REPO__/data/compact.log
+StandardError=append:__REPO__/data/compact.log
+Nice=10

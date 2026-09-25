@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@rain/pm-harness-core": "workspace:*",
-    "@rain/pm-harness-feeds": "workspace:*"
+    "@rain/pm-harness-feeds": "workspace:*",
+    "@rain/pm-harness-store": "workspace:*"
   }
 }

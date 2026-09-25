@@ -1,0 +1,9 @@
+[Unit]
+Description=Hourly Parquet compaction (a few minutes after the recorder rotates its hour file)
+
+[Timer]
+OnCalendar=*-*-* *:07:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

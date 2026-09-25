@@ -1,0 +1,24 @@
+# Rendered by ops/install-systemd.sh (__USER__, __REPO__, __NODE__ are substituted).
+[Unit]
+Description=RainTrade market data recorder
+Wants=network-online.target time-sync.target
+After=network-online.target time-sync.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__REPO__
+ExecStart=__NODE__ apps/harness-recorder/src/main.ts config/default.yaml
+# the recorder flushes and exits 0 on SIGTERM; any exit is restarted
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=30
+StandardOutput=append:__REPO__/data/recorder.log
+StandardError=append:__REPO__/data/recorder.log
+# DuckDB/Node memory is small, but cap it so a leak cannot take the box down
+MemoryMax=1500M
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

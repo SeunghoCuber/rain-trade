@@ -42,6 +42,8 @@ export const Config = z.object({
     tieGoesTo: z.enum(["up", "down"]),
     /** Inclusive Chainlink tick window around each boundary, in seconds (verified [-62, -3]) */
     twapWindow: z.object({ fromSec: z.number().int(), toSec: z.number().int() }),
+    /** |our TWAP − Gamma reference| above this (USD) is flagged TWAPΔ; RTDS is only accurate to ~$0.7 (VERIFIED.md §2.1) */
+    twapToleranceUsd: z.number().nonnegative(),
     mergePairs: z.boolean(),
   }),
   recorder: z.object({

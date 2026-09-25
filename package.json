@@ -12,7 +12,10 @@
     "lint": "eslint .",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "recorder": "ops/run-recorder.sh",
-    "recorder:stats": "node apps/harness-recorder/src/stats.ts"
+    "recorder:stats": "node apps/harness-recorder/src/stats.ts",
+    "data:compact": "node packages/pm-harness-store/src/cli.ts compact",
+    "data:health": "node packages/pm-harness-store/src/cli.ts health",
+    "data:sql": "node packages/pm-harness-store/src/cli.ts sql"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

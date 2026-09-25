@@ -28,6 +28,7 @@ spot:
 settlement:
   tieGoesTo: up         # "greater than or equal to the price at the beginning"
   twapWindow: { fromSec: -62, toSec: -3 }   # mean of 1 s Chainlink ticks; docs/VERIFIED.md §2.1
+  twapToleranceUsd: 1.0                      # RTDS reproduces the official TWAP to ≤ ~$0.7, not exactly
   mergePairs: true
 
 recorder:

@@ -224,6 +224,9 @@ importers:
       '@rain/pm-harness-feeds':
         specifier: workspace:*
         version: link:../../packages/pm-harness-feeds
+      '@rain/pm-harness-store':
+        specifier: workspace:*
+        version: link:../../packages/pm-harness-store
 
   apps/harness-replay:
     dependencies:

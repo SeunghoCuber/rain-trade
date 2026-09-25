@@ -51,6 +51,11 @@ This document breaks the design in [PLAN.md](PLAN.md) into phases for building R
 
 ## Phase 2: Storage and data health (~3 days)
 
+> **Status: done (2026-09-25).** The code is in `packages/pm-harness-store`; use `pnpm data:compact | data:health | data:sql`. Exit check met: `pnpm data:sql` returns per-market event counts, and `markets.excluded` flags bad markets. Overnight, 21 of 22 closed markets were usable, and the one left was only waiting for its resolution. Deploy files for AWS are in `ops/systemd` and [DEPLOY-AWS.md](DEPLOY-AWS.md). Findings:
+> - **Storage:** Parquet is about 15 MB/hour next to about 20 MB of raw gz, so together about 0.85 GB/day. Compaction takes about 3 s per hour of data.
+> - **RTDS reproduces the official TWAP only to ≤ ~$0.70**, not exactly ([VERIFIED.md](VERIFIED.md) §2.1). Settlement uses Gamma's official outcome, and our TWAP is only the real-time S₀ estimate.
+> - **RTDS stalls (~7 s, about every 45 min) are upstream** and no longer exclude markets. `GAP` now counts only book and spot holes plus recorder downtime, measured from any-feed silence.
+
 - A nightly job that compacts NDJSON into Parquet. DuckDB can query NDJSON directly, so this job can slip without blocking anything.
 - A DuckDB view layer over the recorded data.
 - A daily health report:

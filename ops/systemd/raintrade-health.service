@@ -1,0 +1,11 @@
+[Unit]
+Description=RainTrade: per-market health report (yesterday + today)
+
+[Service]
+Type=oneshot
+User=__USER__
+WorkingDirectory=__REPO__
+ExecStart=__NODE__ packages/pm-harness-store/src/cli.ts health
+StandardOutput=append:__REPO__/data/health.log
+StandardError=append:__REPO__/data/health.log
+Nice=10
