@@ -70,6 +70,25 @@ async function handle(url: URL, res: ServerResponse): Promise<void> {
     if (!existsSync(join(dir, "markets.parquet"))) return json(res, 404, { error: "no such run" });
     const p = (f: string) => sqlStr(join(dir, f));
     if (parts[2] === "analysis") return json(res, 200, await analysisFor(runId));
+    if (parts[2] === "fills") {
+      // trade timeline: newest fills first, with their market's window, outcome and net result
+      const mode = sqlStr(url.searchParams.get("mode") ?? "pessimistic");
+      const limit = Math.min(20_000, Math.max(1, Number(url.searchParams.get("limit") ?? 5_000)));
+      return json(
+        res,
+        200,
+        await rows(`
+          SELECT f.market_id, m.slug, m.window_start, m.outcome, m.pnl_trading + m.rebate_est - m.fees AS market_pnl, m.max_abs_inventory,
+                 f.ts, f.side, f.price, f.size, f.seconds_to_close, f.fv_at_fill, f.fv_h5, f.inventory_before,
+                 f.during_cancel_latency, f.through,
+                 -- fill sequence (fill ids are <mode>f<n>[@run]): orders same-millisecond fills as they happened
+                 CAST(regexp_extract(f.fill_id, 'f([0-9]+)', 1) AS BIGINT) AS seq
+          FROM read_parquet(${p("fills.parquet")}) f
+          JOIN read_parquet(${p("markets.parquet")}) m ON m.market_id = f.market_id AND m.mode = f.mode
+          WHERE f.mode = ${mode}
+          ORDER BY f.ts DESC, seq DESC LIMIT ${limit}`),
+      );
+    }
     if (parts[2] === "markets" && parts.length === 3) {
       const mode = url.searchParams.get("mode") ?? "pessimistic";
       await createViews(conn, dataDir);

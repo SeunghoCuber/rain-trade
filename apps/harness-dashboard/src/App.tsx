@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, MODES, type Calibration, type MarketDetail, type MarketRow, type Mode, type RunAnalysis, type LiveStatus, type RunInfo, type Sweep } from "./api.ts";
+import { api, MODES, type Calibration, type MarketDetail, type MarketRow, type Mode, type RunAnalysis, type LiveStatus, type RunInfo, type Sweep, type TradeRow } from "./api.ts";
 import {
   BootstrapDist,
   CumulativePnl,
@@ -16,6 +16,7 @@ import {
   SweepHeatmap,
 } from "./components/Charts.tsx";
 import { MarketTable } from "./components/MarketTable.tsx";
+import { TradeTimeline } from "./components/TradeTimeline.tsx";
 import { fmt, setTimeZone, tzName } from "./theme/chart.ts";
 
 function Kpi({ label, value, sub, dir }: { label: string; value: string; sub?: string; dir?: number }) {
@@ -40,6 +41,7 @@ export function App() {
   const [mode, setMode] = useState<Mode>(MODES.includes(params.get("mode") as Mode) ? (params.get("mode") as Mode) : "pessimistic");
   const [a, setA] = useState<RunAnalysis | null>(null);
   const [markets, setMarkets] = useState<MarketRow[]>([]);
+  const [trades, setTrades] = useState<TradeRow[]>([]);
   const [selected, setSelected] = useState<string | null>(params.get("market"));
   const [detail, setDetail] = useState<MarketDetail | null>(null);
   const [cal, setCal] = useState<Calibration | null>(null);
@@ -60,7 +62,9 @@ export function App() {
   useEffect(() => {
     api.runs().then((r) => {
       setRuns(r);
-      if (r[0]) setRun(r[0].runId);
+      const wanted = params.get("run");
+      const pick = r.find((x) => x.runId === wanted) ?? r[0];
+      if (pick) setRun(pick.runId);
     }, (e: Error) => setError(e.message));
     api.calibration().then(setCal, () => setCal(null));
     api.latestSweep().then(setSweep, () => setSweep(null));
@@ -73,6 +77,7 @@ export function App() {
   useEffect(() => {
     if (!run) return;
     api.markets(run, mode).then(setMarkets, (e: Error) => setError(e.message));
+    api.fills(run, mode).then(setTrades, (e: Error) => setError(e.message));
   }, [run, mode]);
   useEffect(() => {
     if (!run || !selected) return setDetail(null);
@@ -157,7 +162,17 @@ export function App() {
             </div>
             <GoNoGo s={sweep} />
             <MarketTable rows={markets} selected={selected} onSelect={setSelected} />
-            <MarketDrilldown d={detail} mode={mode} />
+            <div id="drilldown">
+              <MarketDrilldown d={detail} mode={mode} />
+            </div>
+            <TradeTimeline
+              trades={trades}
+              mode={mode}
+              onOpenMarket={(id) => {
+                setSelected(id);
+                document.getElementById("drilldown")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
           </>
         )}
         {run && !a && !error && <div className="empty">Loading analysis…</div>}

@@ -81,6 +81,26 @@ export interface MarketDetail {
   fills: { ts: number; side: "BUY" | "SELL"; price: number; size: number; markout5: number | null; inventoryAfter: number }[];
 }
 
+export interface TradeRow {
+  market_id: string;
+  slug: string;
+  window_start: number;
+  outcome: number;
+  market_pnl: number;
+  max_abs_inventory: number;
+  ts: number;
+  side: "BUY" | "SELL";
+  price: number;
+  size: number;
+  seconds_to_close: number;
+  fv_at_fill: number;
+  fv_h5: number | null;
+  inventory_before: number;
+  during_cancel_latency: boolean;
+  through: boolean;
+  seq: number;
+}
+
 export interface Calibration {
   markets: number;
   bins: { panel: string; bucket: number; predicted: number; actual: number; n: number; source: "fv" | "mid" }[];
@@ -136,4 +156,5 @@ export const api = {
   latestSweep: () => get<Sweep | null>("/api/sweeps/latest"),
   liveStatus: () => get<LiveStatus | null>("/api/live/status"),
   meta: () => get<{ timeZone: string }>("/api/meta"),
+  fills: (run: string, mode: Mode) => get<TradeRow[]>(`/api/runs/${encodeURIComponent(run)}/fills?mode=${mode}`),
 };
