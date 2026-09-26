@@ -66,6 +66,11 @@ strategy:
   inventoryDecaySec: 300       # cap → 0 over the last 5 min before the pull: arrive flat
   unwindEdge: 0                # reducing quote at FV while over the shrinking cap
   fvBand: [0.05, 0.95]         # outside: only reduce, never add
+  fvMidWeight: 0               # 0 = quote around our model only; 1 = around the Polymarket mid
+  midMaxSpread: 0.05
+  maxDisagreement: 1           # 1 = off
+  flowWindowSec: 30
+  flowImbalanceShares: 0       # 0 = off
   volHorizonSec: 5
 
 sim:

@@ -6,7 +6,7 @@ const base = loadConfig(new URL("../../../config/default.yaml", import.meta.url)
 // fixed params so these tests do not move when the defaults are tuned
 const cfg = {
   ...base,
-  strategy: { ...base.strategy, halfSpread: 0.01, volSpreadMult: 0.5, skewPerShare: 0.0001, maxInventory: 500, quoteSize: 50, pullBeforeCloseSec: 60, inventoryDecaySec: 0, unwindEdge: 0, fvBand: [0, 1] as [number, number] },
+  strategy: { ...base.strategy, halfSpread: 0.01, volSpreadMult: 0.5, skewPerShare: 0.0001, maxInventory: 500, quoteSize: 50, pullBeforeCloseSec: 60, inventoryDecaySec: 0, unwindEdge: 0, fvBand: [0, 1] as [number, number], fvMidWeight: 0, midMaxSpread: 0.05, maxDisagreement: 1, flowWindowSec: 30, flowImbalanceShares: 0 },
 };
 const W = 1_000_000;
 const ctx = (over: Partial<QuoteContext> = {}): QuoteContext => ({
@@ -20,6 +20,7 @@ const ctx = (over: Partial<QuoteContext> = {}): QuoteContext => ({
   inventory: 0,
   tickSize: 0.01,
   spotJump: false,
+  flowImbalance: 0,
   ...over,
 });
 
@@ -79,6 +80,38 @@ describe("MarketMaker", () => {
       expect(ic.quote({ ...decided, inventory: 0 })).toEqual({ bid: null, ask: null, size: 20 });
       expect(ic.quote({ ...decided, inventory: 40 })!.bid).toBeNull();
       expect(ic.quote({ ...decided, inventory: 40 })!.ask).not.toBeNull();
+    });
+  });
+
+  describe("market-aware quoting", () => {
+    const withS = (o: Partial<typeof cfg.strategy>) => new MarketMaker({ ...cfg, strategy: { ...cfg.strategy, ...o } });
+    // model says 0.60, the market mid is 0.50 (book 0.49/0.51)
+    const split = ctx({ fv: { ...ctx().fv, p: 0.6 }, book: { bid: 0.49, bidSize: 100, ask: 0.51, askSize: 100 } });
+
+    it("blends the quoting fair value toward the Polymarket mid", () => {
+      // w = 0.5 → quote around 0.55: bid floor(0.55 − 0.012) = 0.53, ask stays post-only above 0.49
+      expect(withS({ fvMidWeight: 0.5 }).quote(split)).toMatchObject({ bid: 0.5, ask: 0.57 });
+      expect(withS({ fvMidWeight: 1 }).quote(split)).toMatchObject({ bid: 0.48, ask: 0.52 });
+      // a wide book is not a usable mid: model only
+      const wide = { ...split, book: { bid: 0.3, bidSize: 1, ask: 0.7, askSize: 1 } };
+      expect(withS({ fvMidWeight: 1 }).quote(wide)).toMatchObject({ bid: 0.58, ask: 0.62 });
+    });
+
+    it("stops adding when the model and the market disagree by more than maxDisagreement", () => {
+      const g = withS({ maxDisagreement: 0.05 });
+      expect(g.quote(split)).toEqual({ bid: null, ask: null, size: 50 });
+      expect(g.quote({ ...split, inventory: 40 })).toMatchObject({ bid: null }); // long: may still sell
+      expect(g.quote({ ...split, inventory: 40 })!.ask).not.toBeNull();
+      expect(withS({ maxDisagreement: 0.2 }).quote(split)!.bid).not.toBeNull();
+    });
+
+    it("pulls the side that one-sided taker flow would fill", () => {
+      const f = withS({ flowImbalanceShares: 300 });
+      expect(f.quote(ctx({ flowImbalance: -400 }))).toMatchObject({ bid: null }); // takers dumping UP
+      expect(f.quote(ctx({ flowImbalance: -400 }))!.ask).not.toBeNull();
+      expect(f.quote(ctx({ flowImbalance: 400 }))).toMatchObject({ ask: null });
+      expect(f.quote(ctx({ flowImbalance: -400, inventory: -60 }))!.bid).not.toBeNull(); // buying reduces a short
+      expect(f.quote(ctx({ flowImbalance: -100 }))!.bid).not.toBeNull();
     });
   });
 });

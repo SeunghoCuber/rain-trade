@@ -107,6 +107,14 @@ export const Config = z.object({
     unwindEdge: z.number().nonnegative(),
     /** outside [lo, hi] fair value, never add to a position (only reduce): the outcome is nearly decided */
     fvBand: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]),
+    /** quote around (1 − w)·model + w·Polymarket mid (0 = model only); the mid is used only when the book spread ≤ midMaxSpread */
+    fvMidWeight: z.number().min(0).max(1),
+    midMaxSpread: z.number().positive(),
+    /** |model − mid| above this: only reduce, never add (1 = off) */
+    maxDisagreement: z.number().positive(),
+    /** net taker volume (UP terms) over flowWindowSec beyond ±flowImbalanceShares pulls the side that flow would fill (0 = off) */
+    flowWindowSec: z.number().positive(),
+    flowImbalanceShares: z.number().nonnegative(),
     /** vol term = |FV(S·e^{σ√h}) − FV(S)| over this horizon h, times volSpreadMult (PLAN's σ√τ in probability units) */
     volHorizonSec: z.number().positive(),
   }),

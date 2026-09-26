@@ -118,6 +118,8 @@ export class BacktestRunner {
   private readonly quoteFv: RunnerOptions["quoteFv"];
   private readonly nextFvSample = new Map<string, number>();
   private readonly spotHist: { ms: number; mid: number }[] = [];
+  /** recent trade prints per market in UP terms: + taker buys UP, − taker sells UP */
+  private readonly flow = new Map<string, { ms: number; signed: number }[]>();
   private lastJumpMs = -Infinity;
   private fillSeq = 0;
   events = 0;
@@ -173,6 +175,12 @@ export class BacktestRunner {
     const now = this.nowMs();
 
     if (ev.kind === "spot" && ev.payload.type === "bbo") this.onSpot(now, (ev.payload.bid + ev.payload.ask) / 2);
+    if (ev.kind === "trade") {
+      // DOWN taker BUY == UP taker SELL
+      const upBuy = (ev.token !== "DOWN") === (ev.payload.side === "BUY");
+      const xs = this.flow.get(ev.marketId!) ?? this.flow.set(ev.marketId!, []).get(ev.marketId!)!;
+      xs.push({ ms: now, signed: upBuy ? ev.payload.size : -ev.payload.size });
+    }
     if (ev.kind === "resolution") this.settle(ev.marketId!, ev.payload.outcome);
 
     // markets to (re)quote: the event's market, or every open market on price-moving global events
@@ -203,6 +211,16 @@ export class BacktestRunner {
     return Math.log(h[h.length - 1]!.mid / past) * 1e4;
   }
 
+  private flowImbalance(marketId: string, now: number): number {
+    const xs = this.flow.get(marketId);
+    if (!xs) return 0;
+    const from = now - this.cfg.strategy.flowWindowSec * 1000;
+    while (xs.length && xs[0]!.ms < from) xs.shift();
+    let sum = 0;
+    for (const x of xs) sum += x.signed;
+    return sum;
+  }
+
   private fvVol(marketId: string, now: number, fv: FairValue): number {
     const bump = fv.s * Math.exp(fv.sigma * Math.sqrt(this.cfg.strategy.volHorizonSec));
     const up = this.fvEng.fairValue(marketId, now, bump);
@@ -231,6 +249,7 @@ export class BacktestRunner {
     }
     const jump = now - this.lastJumpMs < this.cfg.strategy.jumpCooldownMs;
     const fvVol = this.fvVol(marketId, now, fv);
+    const flowImbalance = this.flowImbalance(marketId, now);
     for (const st of this.modes) {
       const inv = this.ledger(st, marketId).inventory;
       const qfv = this.quoteFv ? this.quoteFv(marketId, now, fv) : fv;
@@ -245,6 +264,7 @@ export class BacktestRunner {
         inventory: inv,
         tickSize: s.tickSize.UP,
         spotJump: jump,
+        flowImbalance,
       });
       this.reconcile(st, marketId, want, now, fv, inv, s.book);
     }
@@ -389,6 +409,7 @@ export class BacktestRunner {
   forget(marketId: string): void {
     this.fvSeries.delete(marketId);
     this.nextFvSample.delete(marketId);
+    this.flow.delete(marketId);
     this.states.markets.delete(marketId);
     for (const st of this.modes) {
       st.ledgers.delete(marketId);

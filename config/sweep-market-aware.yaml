@@ -1,0 +1,10 @@
+# Market-aware quoting experiment (2026-09-26): does leaning on the Polymarket mid, refusing to add
+# when we disagree with it, or pulling the side hit by one-sided flow stop the inventory losses?
+base: config/default.yaml
+params:
+  strategy.fvMidWeight: [0, 0.5, 1]
+  strategy.maxDisagreement: [1, 0.03]
+  strategy.flowImbalanceShares: [0, 400, 900]   # ~p75 and ~p90 of |net taker flow| per 30 s
+plateauAxes: [strategy.fvMidWeight, strategy.maxDisagreement]
+mode: pessimistic
+minInSampleVolume: 500

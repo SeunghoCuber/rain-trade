@@ -11,7 +11,7 @@ import { availableParallelism } from "node:os";
 import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 import { DuckDBInstance } from "@duckdb/node-api";
-import { analyzeRun, loadRun, mean, runDir, sum, tStat } from "@rain/pm-harness-analytics";
+import { analyzeRun, loadRun, mean, runDir, sd, sum, tStat } from "@rain/pm-harness-analytics";
 import type { FillMode } from "@rain/pm-harness-core";
 import { computeDayHealth, createViews, writeHealth } from "@rain/pm-harness-store";
 import { MarketMaker, type MarketResultRow } from "@rain/pm-harness-strategy";
@@ -86,7 +86,11 @@ interface Metrics {
   edgeCents: number | null;
   edgeCentsExRebates: number | null;
   meanPnl: number | null;
+  sdPnl: number | null;
   tStat: number | null;
+  spread: number;
+  adverse: number;
+  inventory: number;
 }
 const metrics = (rows: MarketResultRow[], ids: Set<string>): Metrics => {
   const rs = rows.filter((r) => ids.has(r.marketId) && r.mode === grid.mode);
@@ -99,7 +103,11 @@ const metrics = (rows: MarketResultRow[], ids: Set<string>): Metrics => {
     edgeCents: volume ? fin((100 * sum(net)) / volume) : null,
     edgeCentsExRebates: volume ? fin((100 * sum(rs.map((r) => r.pnlTrading - r.fees))) / volume) : null,
     meanPnl: fin(mean(net)),
+    sdPnl: fin(sd(net)),
     tStat: fin(tStat(net)),
+    spread: sum(rs.map((r) => r.pnlSpread)),
+    adverse: sum(rs.map((r) => r.pnlAdverse)),
+    inventory: sum(rs.map((r) => r.pnlInventory)),
   };
 };
 const configs = points.map((p) => ({ id: p.id, overrides: p.overrides, is: metrics(rowsById.get(p.id) ?? [], isIds), oos: metrics(rowsById.get(p.id) ?? [], oosIds) }));
@@ -164,14 +172,18 @@ const dir = join(dataDir, "sweeps", sweepId);
 mkdirSync(dir, { recursive: true });
 writeFileSync(join(dir, "sweep.json"), JSON.stringify(out, null, 2));
 
-console.log("\ntop configs by in-sample edge ex rebates (¢/share, " + grid.mode + "):");
-console.log("id     " + grid.params.map(([p]) => p.split(".").at(-1)!.padStart(14)).join("") + "   IS edge   IS vol   OOS edge   OOS t");
-for (const c of [...eligible].sort((a, b) => b.is.edgeCentsExRebates! - a.is.edgeCentsExRebates!).slice(0, 10)) {
+console.log("\nconfigs by in-sample edge ex rebates (" + grid.mode + "); ¢/share; $ = whole-sample totals of the PnL decomposition:");
+console.log(
+  "id     " + grid.params.map(([p]) => p.split(".").at(-1)!.padStart(20)).join("") + "   IS edge  OOS edge  OOS t   volume  spread$  advrs$  invnt$  sd$/mkt",
+);
+const all = (c: (typeof configs)[number], k: "spread" | "adverse" | "inventory") => c.is[k] + c.oos[k];
+for (const c of [...configs].sort((a, b) => (b.is.edgeCentsExRebates ?? -1e9) - (a.is.edgeCentsExRebates ?? -1e9)).slice(0, 40)) {
   const f = (x: number | null, d = 3) => (x === null ? "—" : x.toFixed(d));
   console.log(
     `${c.id}${c.id === chosen.id ? "*" : " "}  ` +
-      grid.params.map(([p]) => String(c.overrides[p]).padStart(14)).join("") +
-      `${f(c.is.edgeCentsExRebates).padStart(10)}${c.is.volume.toFixed(0).padStart(9)}${f(c.oos.edgeCentsExRebates).padStart(11)}${f(c.oos.tStat, 2).padStart(8)}`,
+      grid.params.map(([p]) => String(c.overrides[p]).padStart(20)).join("") +
+      `${f(c.is.edgeCentsExRebates).padStart(10)}${f(c.oos.edgeCentsExRebates).padStart(10)}${f(c.oos.tStat, 2).padStart(7)}` +
+      `${(c.is.volume + c.oos.volume).toFixed(0).padStart(9)}${all(c, "spread").toFixed(0).padStart(9)}${all(c, "adverse").toFixed(0).padStart(8)}${all(c, "inventory").toFixed(0).padStart(8)}${f(c.is.sdPnl, 1).padStart(9)}`,
   );
 }
 console.log(`\nwrote ${join(dir, "sweep.json")}${oosIds.size ? ` and run ${oosRunId}` : ""} in ${out.wallSec}s · next: pnpm report ${sweepId}`);

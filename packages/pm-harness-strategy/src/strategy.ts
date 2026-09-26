@@ -15,6 +15,8 @@ export interface QuoteContext {
   tickSize: number;
   /** a spot jump happened within the cooldown */
   spotJump: boolean;
+  /** net taker volume in UP terms over the flow window: + = takers buying UP, − = selling */
+  flowImbalance: number;
 }
 
 /** Desired resting quotes in UP terms; null side = no order; null result = pull everything. */
@@ -75,15 +77,27 @@ export class MarketMaker implements Strategy {
     if (ctx.nowMs < ctx.windowStart || ctx.nowMs > ctx.windowEnd - s.pullBeforeCloseSec * 1000) return null;
     const inv = ctx.inventory;
     const cap = this.cap(ctx);
-    const fv = ctx.fv.p;
+    // quoting fair value: optionally pulled toward the Polymarket mid (the market often knows more)
+    const b = ctx.book;
+    const mid = b.bid !== null && b.ask !== null && b.ask - b.bid <= s.midMaxSpread + 1e-9 ? (b.bid + b.ask) / 2 : null;
+    const model = ctx.fv.p;
+    const fv = mid === null ? model : (1 - s.fvMidWeight) * model + s.fvMidWeight * mid;
+    const disagree = mid !== null && Math.abs(model - mid) > s.maxDisagreement;
     const hs = s.halfSpread + s.volSpreadMult * ctx.fvVol;
     const skew = s.skewPerShare * inv; // long UP → quotes shift down
     let bid: number | null = fv - hs - skew;
     let ask: number | null = fv + hs - skew;
     const extreme = fv < s.fvBand[0] || fv > s.fvBand[1];
-    // never add beyond the (shrinking) cap, and never add at all when the outcome is nearly decided
-    if (inv >= cap || (extreme && inv >= 0)) bid = null;
-    if (inv <= -cap || (extreme && inv <= 0)) ask = null;
+    // never add beyond the (shrinking) cap, and never add when the outcome is nearly decided or when
+    // our model and the market disagree strongly
+    const noAdd = extreme || disagree;
+    if (inv >= cap || (noAdd && inv >= 0)) bid = null;
+    if (inv <= -cap || (noAdd && inv <= 0)) ask = null;
+    // one-sided flow: takers selling UP would fill our bid (we'd buy into the move), so pull it unless it reduces a short
+    if (s.flowImbalanceShares > 0) {
+      if (ctx.flowImbalance <= -s.flowImbalanceShares && inv >= 0) bid = null;
+      if (ctx.flowImbalance >= s.flowImbalanceShares && inv <= 0) ask = null;
+    }
     // over the cap: work the reducing side at FV to get out (flat is the goal, not the spread)
     if (inv > cap && ask !== null) ask = Math.min(ask, fv + s.unwindEdge);
     if (inv < -cap && bid !== null) bid = Math.max(bid, fv - s.unwindEdge);
