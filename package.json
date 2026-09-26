@@ -25,7 +25,8 @@
     "dashboard": "pnpm --filter harness-dashboard build && node apps/harness-dashboard/server/main.ts",
     "sweep": "node apps/harness-replay/src/sweep/sweep.ts",
     "report": "node apps/harness-replay/src/sweep/report.ts",
-    "live": "node apps/harness-live/src/main.ts"
+    "live": "node apps/harness-live/src/main.ts",
+    "research:wallets": "node apps/harness-replay/src/research/wallets.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
